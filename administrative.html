@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NIRVACHANNEX – Administrative simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="ui-system.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <img src="nirvachan logo.jpg" alt="NirvachanNex logo" />
+        </div>
+        <div>
+          <div class="brand-text-main">NIRVACHANNEX</div>
+          <div class="brand-text-sub">ONE NATION · ONE ELECTION</div>
+        </div>
+      </div>
+      <nav class="app-nav">
+        <a class="nav-pill" href="overview.html">Overview</a>
+        <a class="nav-pill" href="governance.html">Governance</a>
+        <a class="nav-pill nav-active" href="administrative.html">Administrative</a>
+        <a class="nav-pill" href="financial.html">Financial</a>
+        <a class="nav-pill" href="constitutional.html">Constitutional</a>
+        <a href="delhi.html" class="nav-pill">Delhi Module</a>
+      </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="overview-grid">
+      <!-- LEFT: admin chart -->
+      <section class="glass-panel">
+        <div class="panel-glow"></div>
+
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <div class="panel-title">Administrative fatigue & complaints</div>
+            <div class="panel-subtitle">
+              Triplet bars show staff‑fatigue, complaint volume and queue‑time proxy under staggered cycles and ONOE.
+            </div>
+          </div>
+          <div class="panel-tag">Administrative module</div>
+        </div>
+
+        <div class="scenario-strip">
+          <div class="scenario-toggle">
+            <button class="scenario-btn scenario-btn-active" data-scenario="current">Current system</button>
+            <button class="scenario-btn" data-scenario="onoe">Synchronised ONOE</button>
+          </div>
+          <div class="scenario-badge" id="admin-scenario-note">
+            Current system as baseline. Δ shows how ONOE shifts stress in the field.
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="admin-kpi-grid"></div>
+
+        <div class="chart-section">
+          <div class="chart-shell">
+            <div class="chart-header-text">
+              Metro‑wise administrative stress bundle
+            </div>
+            <div class="chart-subtext">
+              Each city shows staff‑fatigue index, scaled complaints and a queue‑time proxy. Hover to see the story.
+            </div>
+            <div class="chart-area">
+              <div class="chart-grid"></div>
+              <div class="chart-inner">
+                <div class="chart-root" id="admin-chart-root"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="verdict-text" id="admin-verdict"></div>
+      </section>
+
+      <!-- RIGHT: controls -->
+      <section class="glass-panel-soft">
+        <div class="right-panel-inner">
+          <h2 style="font-size:0.92rem;margin-bottom:4px;">Administrative controls</h2>
+          <p class="right-intro">
+            Tune how strongly ONOE reduces staff fatigue and complaint rates; these assumptions feed financial and constitutional risk.
+          </p>
+
+          <div class="metric-stack">
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">Fatigue reduction under ONOE</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#9c6bff,#4ef2ff);">
+                  F
+                </div>
+              </div>
+              <div class="metric-value"><span id="admin-fatigue-label">0.80</span> ×</div>
+              <div class="metric-caption">
+                Multiplier applied to staff‑fatigue scores in ONOE. Lower values mean stronger relief.
+              </div>
+              <input id="admin-fatigue-slider" type="range" min="0.5" max="1" step="0.05" value="0.8" style="width:100%;margin-top:6px;" />
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">Complaint reduction under ONOE</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#ffc857,#ff8f57);">
+                  C
+                </div>
+              </div>
+              <div class="metric-value"><span id="admin-complaint-label">0.85</span> ×</div>
+              <div class="metric-caption">
+                Factor applied to cVIGIL complaints when cycles are synchronised; reflects fewer repeated campaigns.
+              </div>
+              <input id="admin-complaint-slider" type="range" min="0.5" max="1" step="0.05" value="0.85" style="width:100%;margin-top:6px;" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>© 2025 NirvachanNex – Administrative Simulator</footer>
+  </div>
+
+  <div id="chart-tooltip"></div>
+
+  <script>
+    const adminCities = [
+      { name: "Mumbai",     polls:3, staffFatigue:8.5, complaints:12400 },
+      { name: "Delhi (NCT)",polls:3, staffFatigue:9.0, complaints:18600 },
+      { name: "Bengaluru",  polls:3, staffFatigue:8.0, complaints:9800  },
+      { name: "Hyderabad",  polls:3, staffFatigue:7.5, complaints:7500  },
+      { name: "Chennai",    polls:2, staffFatigue:6.5, complaints:6200  },
+      { name: "Kolkata",    polls:3, staffFatigue:9.5, complaints:11300 },
+      { name: "Ahmedabad",  polls:2, staffFatigue:7.0, complaints:5400  },
+      { name: "Pune",       polls:3, staffFatigue:8.0, complaints:6800  },
+      { name: "Surat",      polls:2, staffFatigue:6.5, complaints:3900  },
+      { name: "Jaipur",     polls:2, staffFatigue:7.0, complaints:4200  }
+    ];
+
+    const adminParams = {
+      fatigueReductionONOE: 0.8,
+      complaintReductionONOE: 0.85
+    };
+
+    let adminScenario = "current";
+
+    function computeAdminMetrics(scenario) {
+      const fFactor = scenario === "current" ? 1 : adminParams.fatigueReductionONOE;
+      const cFactor = scenario === "current" ? 1 : adminParams.complaintReductionONOE;
+
+      let fatigueSum = 0;
+      let complaintsSum = 0;
+
+      const perCity = adminCities.map(c => {
+        const fatigue = c.staffFatigue * c.polls * fFactor;
+        const complaints = c.complaints * cFactor;
+        fatigueSum += fatigue;
+        complaintsSum += complaints;
+        return { ...c, fatigue, complaints };
+      });
+
+      const avgFatigue    = fatigueSum / adminCities.length;
+      const avgComplaints = complaintsSum / adminCities.length;
+      const index =
+        ((avgFatigue / (10 * 3)) + (avgComplaints / 20000)) / 2 * 100;
+
+      return { perCity, avgFatigue, avgComplaints, index };
+    }
+
+    const adminKpiGrid   = document.getElementById("admin-kpi-grid");
+    const adminChartRoot = document.getElementById("admin-chart-root");
+    const adminVerdict   = document.getElementById("admin-verdict");
+    const adminScenarioNote = document.getElementById("admin-scenario-note");
+    const tooltipEl      = document.getElementById("chart-tooltip");
+
+    function showTooltip(x, y, title, lines) {
+      tooltipEl.innerHTML = `
+        <div id="chart-tooltip-title">${title}</div>
+        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
+      tooltipEl.style.left = x + 12 + "px";
+      tooltipEl.style.top  = y + 12 + "px";
+      tooltipEl.style.display = "block";
+    }
+    function hideTooltip() { tooltipEl.style.display = "none"; }
+
+    function renderAdminKPIs() {
+      adminKpiGrid.innerHTML = "";
+      const cur  = computeAdminMetrics("current");
+      const onoe = computeAdminMetrics("onoe");
+
+      const base  = adminScenario === "current" ? cur  : onoe;
+      const other = adminScenario === "current" ? onoe : cur;
+      const sign  = adminScenario === "current" ? 1 : -1;
+
+      const cards = [
+        {
+          label: "Avg staff‑fatigue index",
+          value: base.avgFatigue,
+          delta: (other.avgFatigue - base.avgFatigue) * sign,
+          unit: "",
+          better: "lower"
+        },
+        {
+          label: "Avg complaints per metro",
+          value: base.avgComplaints,
+          delta: (other.avgComplaints - base.avgComplaints) * sign,
+          unit: "",
+          better: "lower"
+        },
+        {
+          label: "Administrative stress index",
+          value: base.index,
+          delta: (other.index - base.index) * sign,
+          unit: " /100",
+          better: "lower"
+        }
+      ];
+
+      cards.forEach(c => {
+        const edge =
+          c.delta === 0
+            ? " · Neutral"
+            : (c.better === "lower" && c.delta < 0) ||
+              (c.better === "higher" && c.delta > 0)
+            ? " · Other scenario edge"
+            : " · Current view edge";
+
+        const div = document.createElement("div");
+        div.className = "kpi-card";
+        div.innerHTML = `
+          <div class="kpi-label">${c.label}</div>
+          <div class="kpi-value">${c.value.toFixed(1)}${c.unit}</div>
+          <div class="kpi-delta">
+            Δ ${(c.delta >= 0 ? "+" : "") + c.delta.toFixed(1)}${c.unit}${edge}
+          </div>`;
+        adminKpiGrid.appendChild(div);
+      });
+
+      adminScenarioNote.textContent =
+        adminScenario === "current"
+          ? "Current system as baseline. Δ shows ONOE’s impact on fatigue and complaints."
+          : "ONOE as baseline. Δ shows penalty of returning to staggered cycles.";
+    }
+
+    function renderAdminChart() {
+      adminChartRoot.innerHTML = "";
+      const metrics = computeAdminMetrics(adminScenario);
+
+      const height = adminChartRoot.clientHeight || 160;
+      const barWidth = 12;
+      const groupWidth = barWidth * 3 + 8;
+      const totalWidth = adminChartRoot.clientWidth || 640;
+      const x0 = 8;
+      const gap =
+        (totalWidth - x0 * 2 - groupWidth * metrics.perCity.length) /
+        Math.max(metrics.perCity.length - 1, 1);
+
+      let maxFat = 0;
+      let maxComp = 0;
+      metrics.perCity.forEach(c => {
+        maxFat  = Math.max(maxFat, c.fatigue);
+        maxComp = Math.max(maxComp, c.complaints);
+      });
+
+      metrics.perCity.forEach((c, idx) => {
+        const xBase = x0 + idx * (groupWidth + gap);
+        const fatH  = (c.fatigue    / maxFat)  * (height * 0.9);
+        const compH = (c.complaints / maxComp) * (height * 0.9);
+        const queueH = (c.polls / 3) * (height * 0.9); // simple proxy
+
+        const attachTooltip = (el, payload) => {
+          el.addEventListener("mousemove", e =>
+            showTooltip(e.clientX, e.clientY, payload.title, payload.lines)
+          );
+          el.addEventListener("mouseleave", hideTooltip);
+        };
+
+        const barFat = document.createElement("div");
+        barFat.className = "bar bar-current";
+        barFat.style.left = xBase + "px";
+        barFat.style.width = barWidth + "px";
+        barFat.style.height = fatH + "px";
+        attachTooltip(barFat, {
+          title: c.name + " · Staff fatigue",
+          lines: [
+            "Composite fatigue index: " + c.fatigue.toFixed(1),
+            "Polls in 5 yrs: " + c.polls
+          ]
+        });
+        adminChartRoot.appendChild(barFat);
+
+        const barComp = document.createElement("div");
+        barComp.className = "bar bar-secondary";
+        barComp.style.left = xBase + barWidth + 3 + "px";
+        barComp.style.width = barWidth + "px";
+        barComp.style.height = compH + "px";
+        attachTooltip(barComp, {
+          title: c.name + " · Citizen complaints",
+          lines: [
+            "cVIGIL complaints (scaled): " + c.complaints.toLocaleString()
+          ]
+        });
+        adminChartRoot.appendChild(barComp);
+
+        const barQueue = document.createElement("div");
+        barQueue.className = "bar bar-sync";
+        barQueue.style.left = xBase + barWidth * 2 + 6 + "px";
+        barQueue.style.width = barWidth + "px";
+        barQueue.style.height = queueH + "px";
+        attachTooltip(barQueue, {
+          title: c.name + " · Queue pressure proxy",
+          lines: [
+            "Relative queue load: " + (c.polls / 3 * 100).toFixed(0) + "%"
+          ]
+        });
+        adminChartRoot.appendChild(barQueue);
+
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.style.left = xBase + groupWidth / 2 + "px";
+        label.style.bottom = "-18px";
+        label.textContent = c.name.split(" ")[0];
+        adminChartRoot.appendChild(label);
+      });
+
+      const other = computeAdminMetrics(adminScenario === "current" ? "onoe" : "current");
+      const dIndex = other.index - metrics.index;
+      adminVerdict.textContent =
+        "Under this configuration, switching scenarios changes the composite administrative stress index by " +
+        (dIndex >= 0 ? "+" : "") +
+        dIndex.toFixed(1) +
+        " points on a 0–100 scale. Hover bars for city‑wise breakdown.";
+    }
+
+    function renderAdminAll() {
+      renderAdminKPIs();
+      renderAdminChart();
+    }
+
+    document.querySelectorAll(".scenario-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".scenario-btn")
+          .forEach(b => b.classList.remove("scenario-btn-active"));
+        btn.classList.add("scenario-btn-active");
+        adminScenario = btn.dataset.scenario;
+        renderAdminAll();
+      });
+    });
+
+    document.getElementById("admin-fatigue-slider").oninput = e => {
+      adminParams.fatigueReductionONOE = Number(e.target.value);
+      document.getElementById("admin-fatigue-label").textContent =
+        Number(e.target.value).toFixed(2);
+      renderAdminAll();
+    };
+
+    document.getElementById("admin-complaint-slider").oninput = e => {
+      adminParams.complaintReductionONOE = Number(e.target.value);
+      document.getElementById("admin-complaint-label").textContent =
+        Number(e.target.value).toFixed(2);
+      renderAdminAll();
+    };
+
+    window.addEventListener("resize", renderAdminChart);
+    renderAdminAll();
+  </script>
+</body>
+</html>

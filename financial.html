@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NIRVACHANNEX – Financial simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="ui-system.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <img src="nirvachan logo.jpg" alt="NirvachanNex logo" />
+        </div>
+        <div>
+          <div class="brand-text-main">NIRVACHANNEX</div>
+          <div class="brand-text-sub">ONE NATION · ONE ELECTION</div>
+        </div>
+      </div>
+      <nav class="app-nav">
+        <a class="nav-pill" href="overview.html">Overview</a>
+        <a class="nav-pill" href="governance.html">Governance</a>
+        <a class="nav-pill" href="administrative.html">Administrative</a>
+        <a class="nav-pill nav-active" href="financial.html">Financial</a>
+        <a class="nav-pill" href="constitutional.html">Constitutional</a>
+        <a href="delhi.html" class="nav-pill">Delhi Module</a>
+      </nav>
+    </header>
+
+    <main class="overview-grid">
+      <section class="glass-panel">
+        <div class="panel-glow"></div>
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <div class="panel-title">Logistics spend per voter</div>
+            <div class="panel-subtitle">
+              Paired bars show per‑voter logistics cost in the viewed scenario and the alternative for each metro.
+            </div>
+          </div>
+          <div class="panel-tag">Financial module</div>
+        </div>
+
+        <div class="scenario-strip">
+          <div class="scenario-toggle">
+            <button class="scenario-btn scenario-btn-active" data-scenario="current">Current system</button>
+            <button class="scenario-btn" data-scenario="onoe">Synchronised ONOE</button>
+          </div>
+          <div class="scenario-badge" id="fin-scenario-note">
+            Current system as baseline. Δ shows ONOE‑linked savings.
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="fin-kpi-grid"></div>
+
+        <div class="chart-section">
+          <div class="chart-shell">
+            <div class="chart-header-text">
+              City‑wise logistics cost per voter
+            </div>
+            <div class="chart-subtext">
+              Hover each bar to see per‑voter cost and 5‑year city‑level spend in the respective scenario.
+            </div>
+            <div class="chart-area">
+              <div class="chart-grid"></div>
+              <div class="chart-inner">
+                <div class="chart-root" id="fin-chart-root"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="verdict-text" id="fin-verdict"></div>
+      </section>
+
+      <section class="glass-panel-soft">
+        <div class="right-panel-inner">
+          <h2 style="font-size:0.92rem;margin-bottom:4px;">Financial controls</h2>
+          <p class="right-intro">
+            This saving factor is shared with the overview module. Combine with realistic governance and admin assumptions.
+          </p>
+
+          <div class="metric-stack">
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">ONOE logistics saving factor</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#4ef2ff,#88ffea);">
+                  L
+                </div>
+              </div>
+              <div class="metric-value"><span id="fin-saving-label">0.90</span> ×</div>
+              <div class="metric-caption">
+                Multiplier applied to logistics cost in ONOE. 0.90 ≈ 10% saving over current.
+              </div>
+              <input id="fin-saving-slider" type="range" min="0.7" max="1" step="0.05" value="0.9" style="width:100%;margin-top:6px;" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>© 2025 NirvachanNex – Financial Simulator</footer>
+  </div>
+
+  <div id="chart-tooltip"></div>
+
+  <script>
+    const finCities = [
+      { name: "Mumbai",     voters: 9.8, polls:3, costMin:12, costMax:15 },
+      { name: "Delhi (NCT)",voters:14.3, polls:3, costMin:18, costMax:22 },
+      { name: "Bengaluru",  voters: 9.5, polls:3, costMin:14, costMax:16 },
+      { name: "Hyderabad",  voters: 4.0, polls:3, costMin: 8, costMax:10 },
+      { name: "Chennai",    voters: 3.8, polls:2, costMin: 9, costMax:11 },
+      { name: "Kolkata",    voters: 3.3, polls:3, costMin:10, costMax:13 },
+      { name: "Ahmedabad",  voters: 3.9, polls:2, costMin: 7, costMax: 9 },
+      { name: "Pune",       voters: 3.3, polls:3, costMin: 8, costMax:10 },
+      { name: "Surat",      voters: 3.1, polls:2, costMin: 6, costMax: 8 },
+      { name: "Jaipur",     voters: 4.1, polls:2, costMin: 7, costMax: 9 }
+    ];
+
+    const finParams = { savingONOE: 0.9 };
+    let finScenario = "current";
+
+    function computeFinMetrics(scenario) {
+      const factor = scenario === "current" ? 1 : finParams.savingONOE;
+
+      let totalCostCr = 0;
+      let totalVotersM = 0;
+
+      const perCity = finCities.map(c => {
+        const avgCr  = (c.costMin + c.costMax) / 2;
+        const costCr = avgCr * c.polls * factor;
+        const cpv    = (costCr * 1e7) / (c.voters * 1e6);
+        totalCostCr  += costCr;
+        totalVotersM += c.voters;
+        return { ...c, avgCr, costCr, cpv };
+      });
+
+      const avgCostPerVoter = (totalCostCr * 1e7) / (totalVotersM * 1e6);
+      return { perCity, totalCostCr, avgCostPerVoter };
+    }
+
+    const finKpiGrid   = document.getElementById("fin-kpi-grid");
+    const finChartRoot = document.getElementById("fin-chart-root");
+    const finVerdict   = document.getElementById("fin-verdict");
+    const finScenarioNote = document.getElementById("fin-scenario-note");
+    const tooltipElFin = document.getElementById("chart-tooltip");
+
+    function showFinTooltip(x, y, title, lines) {
+      tooltipElFin.innerHTML = `
+        <div id="chart-tooltip-title">${title}</div>
+        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
+      tooltipElFin.style.left = x + 12 + "px";
+      tooltipElFin.style.top  = y + 12 + "px";
+      tooltipElFin.style.display = "block";
+    }
+    function hideFinTooltip() { tooltipElFin.style.display = "none"; }
+
+    function renderFinKPIs() {
+      finKpiGrid.innerHTML = "";
+      const cur  = computeFinMetrics("current");
+      const onoe = computeFinMetrics("onoe");
+
+      const base  = finScenario === "current" ? cur  : onoe;
+      const other = finScenario === "current" ? onoe : cur;
+      const sign  = finScenario === "current" ? 1 : -1;
+
+      const cards = [
+        {
+          label: "Total logistics cost · 5 yrs",
+          value: base.totalCostCr,
+          delta: (other.totalCostCr - base.totalCostCr) * sign,
+          unit: " Cr",
+          better: "lower"
+        },
+        {
+          label: "Average cost per voter",
+          value: base.avgCostPerVoter,
+          delta: (other.avgCostPerVoter - base.avgCostPerVoter) * sign,
+          unit: " ₹",
+          better: "lower"
+        }
+      ];
+
+      cards.forEach(c => {
+        const edge =
+          c.delta === 0
+            ? " · Neutral"
+            : (c.better === "lower" && c.delta < 0) ||
+              (c.better === "higher" && c.delta > 0)
+            ? " · Other scenario edge"
+            : " · Current view edge";
+
+        const div = document.createElement("div");
+        div.className = "kpi-card";
+        div.innerHTML = `
+          <div class="kpi-label">${c.label}</div>
+          <div class="kpi-value">${c.value.toFixed(1)}${c.unit}</div>
+          <div class="kpi-delta">
+            Δ ${(c.delta >= 0 ? "+" : "") + c.delta.toFixed(1)}${c.unit}${edge}
+          </div>`;
+        finKpiGrid.appendChild(div);
+      });
+
+      finScenarioNote.textContent =
+        finScenario === "current"
+          ? "Current system as baseline. Δ shows ONOE‑linked savings."
+          : "ONOE as baseline. Δ shows cost penalty if cycles remain staggered.";
+    }
+
+    function renderFinChart() {
+      finChartRoot.innerHTML = "";
+      const metrics = computeFinMetrics(finScenario);
+      const other   = computeFinMetrics(finScenario === "current" ? "onoe" : "current");
+
+      const height = finChartRoot.clientHeight || 160;
+      const barWidth = 18;
+      const totalWidth = finChartRoot.clientWidth || 640;
+      const groupWidth = barWidth * 2 + 6;
+      const x0 = 8;
+      const gap =
+        (totalWidth - x0 * 2 - groupWidth * metrics.perCity.length) /
+        Math.max(metrics.perCity.length - 1, 1);
+
+      let maxCpv = 0;
+      metrics.perCity.forEach((c, i) => {
+        maxCpv = Math.max(maxCpv, c.cpv, other.perCity[i].cpv);
+      });
+
+      metrics.perCity.forEach((c, idx) => {
+        const o = other.perCity[idx];
+        const xBase = x0 + idx * (groupWidth + gap);
+        const hBase  = (c.cpv / maxCpv) * (height * 0.9);
+        const hOther = (o.cpv / maxCpv) * (height * 0.9);
+
+        const attachTooltip = (el, payload) => {
+          el.addEventListener("mousemove", e =>
+            showFinTooltip(e.clientX, e.clientY, payload.title, payload.lines)
+          );
+          el.addEventListener("mouseleave", hideFinTooltip);
+        };
+
+        const barA = document.createElement("div");
+        barA.className = "bar " + (finScenario === "current" ? "bar-current" : "bar-sync");
+        barA.style.left = xBase + "px";
+        barA.style.width = barWidth + "px";
+        barA.style.height = hBase + "px";
+        attachTooltip(barA, {
+          title: c.name + " · " + (finScenario === "current" ? "Current system" : "ONOE"),
+          lines: [
+            "Cost per voter: ₹" + c.cpv.toFixed(0),
+            "Total cost (5 yrs): ₹" + c.costCr.toFixed(1) + " Cr",
+            "Polls in 5 yrs: " + c.polls
+          ]
+        });
+        finChartRoot.appendChild(barA);
+
+        const barB = document.createElement("div");
+        barB.className = "bar " + (finScenario === "current" ? "bar-sync" : "bar-current");
+        barB.style.left = xBase + barWidth + 3 + "px";
+        barB.style.width = barWidth + "px";
+        barB.style.height = hOther + "px";
+        attachTooltip(barB, {
+          title: c.name + " · " + (finScenario === "current" ? "ONOE" : "Current system"),
+          lines: [
+            "Cost per voter: ₹" + o.cpv.toFixed(0),
+            "Total cost (5 yrs): ₹" + o.costCr.toFixed(1) + " Cr",
+            "Polls in 5 yrs: " + o.polls
+          ]
+        });
+        finChartRoot.appendChild(barB);
+
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.style.left = xBase + groupWidth / 2 + "px";
+        label.style.bottom = "-18px";
+        label.textContent = c.name.split(" ")[0];
+        finChartRoot.appendChild(label);
+      });
+
+      const cur  = computeFinMetrics("current");
+      const onoe = computeFinMetrics("onoe");
+      const dCost = onoe.totalCostCr - cur.totalCostCr;
+
+      finVerdict.textContent =
+        "Across these metros, moving from the current system to ONOE changes 5‑year logistics outlay by " +
+        (dCost >= 0 ? "+" : "") +
+        dCost.toFixed(1) +
+        " Cr. Hover bars for city‑wise spend and per‑voter cost.";
+    }
+
+    function renderFinAll() {
+      renderFinKPIs();
+      renderFinChart();
+    }
+
+    document.querySelectorAll(".scenario-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".scenario-btn")
+          .forEach(b => b.classList.remove("scenario-btn-active"));
+        btn.classList.add("scenario-btn-active");
+        finScenario = btn.dataset.scenario;
+        renderFinAll();
+      });
+    });
+
+    document.getElementById("fin-saving-slider").oninput = e => {
+      finParams.savingONOE = Number(e.target.value);
+      document.getElementById("fin-saving-label").textContent =
+        Number(e.target.value).toFixed(2);
+      renderFinAll();
+    };
+
+    window.addEventListener("resize", renderFinChart);
+    renderFinAll();
+  </script>
+</body>
+</html>

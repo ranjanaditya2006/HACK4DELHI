@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delhi Electoral Module | One Nation One Election</title>
+    <link rel="stylesheet" href="ui-system.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- CORE THEME --- */
+        :root { --primary: #3b82f6; --accent: #a855f7; --bg-dark: #020617; --card-bg: rgba(30, 41, 59, 0.7); }
+        body { margin: 0; overflow: hidden; background: var(--bg-dark); font-family: 'Inter', sans-serif; color: #fff; }
+        
+        /* --- LAYOUT --- */
+        .app-shell { display: flex; flex-direction: column; height: 100vh; }
+        .app-header { height: 60px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; padding: 0 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+        
+        .brand-text { 
+            font-weight: 800; font-size: 1.2rem; letter-spacing: 1px; 
+            background: linear-gradient(90deg, #fff, #94a3b8); 
+            -webkit-background-clip: text; background-clip: text; color: transparent; 
+        }
+        
+        .delhi-layout { display: grid; grid-template-columns: 260px 1fr; height: calc(100vh - 60px); }
+        
+        /* --- SIDEBAR --- */
+        .delhi-sidebar { background: rgba(15, 23, 42, 0.6); border-right: 1px solid rgba(255,255,255,0.05); padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .nav-btn {
+            display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03); border: 1px solid transparent; color: #94a3b8; cursor: pointer; transition: all 0.2s;
+        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .nav-btn.active {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15));
+            border: 1px solid rgba(59, 130, 246, 0.4); color: #fff; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+        }
+        .nav-icon { width: 32px; height: 32px; background: rgba(0,0,0,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+
+        /* --- CONTENT AREA --- */
+        .delhi-content { padding: 30px; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        .delhi-content::-webkit-scrollbar { width: 6px; }
+        .delhi-content::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        
+        .section-header { margin-bottom: 30px; }
+        .page-title { 
+            font-size: 2.2rem; font-weight: 700; margin: 0; 
+            background: linear-gradient(to right, #fff, #cbd5e1); 
+            -webkit-background-clip: text; background-clip: text; color: transparent; 
+        }
+        .page-subtitle { color: #64748b; margin-top: 5px; }
+
+        /* --- SEAT GRIDS --- */
+        .zone-container { margin-bottom: 40px; animation: fadeIn 0.5s ease; }
+        .zone-title { color: #38bdf8; font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .seats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .seat-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 14px;
+            cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+        }
+        .seat-card:hover { transform: translateY(-3px); background: rgba(255,255,255,0.07); border-color: #38bdf8; box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.15); }
+        .seat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: #38bdf8; opacity: 0; transition: opacity 0.2s; }
+        .seat-card:hover::before { opacity: 1; }
+        
+        .seat-name { font-weight: 500; font-size: 0.95rem; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .seat-meta { font-size: 0.75rem; color: #64748b; margin-top: 4px; text-transform: uppercase; }
+
+        /* --- SIMULATOR SLIDE (OVERLAY) --- */
+        .sim-overlay {
+            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(16px);
+            z-index: 1000; display: none; opacity: 0; transition: opacity 0.3s ease;
+            align-items: center; justify-content: center;
+        }
+        .sim-overlay.active { display: flex; opacity: 1; }
+        
+        .sim-window {
+            width: 90%; max-width: 1400px; height: 90vh; background: linear-gradient(145deg, rgba(15, 23, 42, 0.8), rgba(2, 6, 23, 0.9));
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .sim-header-bar {
+            padding: 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.2);
+        }
+        .sim-seat-info h2 { margin: 0; font-size: 2rem; color: #fff; }
+        .sim-seat-tag { display: inline-block; padding: 4px 12px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; }
+
+        .sim-close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
+        .sim-close-btn:hover { color: #ef4444; }
+
+        .sim-body { flex: 1; display: grid; grid-template-columns: 280px 1fr; overflow: hidden; }
+        
+        /* Sim Sidebar */
+        .sim-nav { padding: 30px; border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2); }
+        .sim-tab {
+            padding: 15px 20px; border-radius: 12px; color: #94a3b8; cursor: pointer; font-weight: 600; transition: all 0.2s; border: 1px solid transparent; text-align: left; background: none;
+        }
+        .sim-tab:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .sim-tab.active { background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), transparent); border-left: 3px solid #3b82f6; color: #fff; }
+
+        /* Sim Content */
+        .sim-content-area { padding: 40px; overflow-y: auto; }
+        .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .metric-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 20px; }
+        .metric-label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .metric-value { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 5px; }
+        .metric-delta { font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .delta-good { color: #4ade80; } .delta-bad { color: #f87171; }
+
+        .chart-box { height: 350px; background: rgba(0,0,0,0.2); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; }
+        .ai-box { background: linear-gradient(145deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.05)); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 25px; }
+        .ai-title { color: #38bdf8; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <header class="app-header">
+        <div class="brand-text">NIRVACHAN <span style="font-weight:400; font-size:0.9rem; color:#64748b;">ONE NATION · ONE ELECTION</span></div>
+    </header>
+
+    <div class="delhi-layout">
+        <aside class="delhi-sidebar">
+            <div class="nav-btn active" onclick="loadView('mcd', this)">
+                <div class="nav-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <div>MCD (Local)<div style="font-size:0.7rem; color:#64748b;">250 Wards</div></div>
+            </div>
+            <div class="nav-btn" onclick="loadView('vs', this)">
+                <div class="nav-icon"><i class="fas fa-gavel"></i></div>
+                <div>Vidhan Sabha<div style="font-size:0.7rem; color:#64748b;">70 Seats</div></div>
+            </div>
+            <div class="nav-btn" onclick="loadView('ls', this)">
+                <div class="nav-icon"><i class="fas fa-landmark"></i></div>
+                <div>Lok Sabha<div style="font-size:0.7rem; color:#64748b;">7 Seats</div></div>
+            </div>
+        </aside>
+
+        <main class="delhi-content" id="mainContent">
+            <!-- Content will be injected here -->
+        </main>
+    </div>
+</div>
+
+<div class="sim-overlay" id="simOverlay">
+    <div class="sim-window">
+        <div class="sim-header-bar">
+            <div class="sim-seat-info">
+                <span class="sim-seat-tag" id="simSeatType">TYPE</span>
+                <h2 id="simSeatName">NAME</h2>
+            </div>
+            <button class="sim-close-btn" onclick="closeSim()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sim-body">
+            <nav class="sim-nav">
+                <button class="sim-tab active" onclick="updateSimTab('governance')"><i class="fas fa-balance-scale mr-2"></i> Governance</button>
+                <button class="sim-tab" onclick="updateSimTab('administrative')"><i class="fas fa-clipboard-check mr-2"></i> Administrative</button>
+                <button class="sim-tab" onclick="updateSimTab('financial')"><i class="fas fa-rupee-sign mr-2"></i> Financial</button>
+                <button class="sim-tab" onclick="updateSimTab('constitutional')"><i class="fas fa-book mr-2"></i> Constitutional</button>
+            </nav>
+            <div class="sim-content-area">
+                <div id="metricContainer"></div>
+                <div class="chart-box">
+                    <canvas id="simChart"></canvas>
+                </div>
+                <div class="ai-box">
+                    <div class="ai-title"><i class="fas fa-robot"></i> AI IMPACT ANALYSIS</div>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;" id="aiText">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATA STORE ---
+    const delhiData = {
+        ls: {
+            title: "Lok Sabha (7 Seats)",
+            groups: {
+                "National Capital Territory": [
+                    {n: "Chandni Chowk", t: "Commercial"}, {n: "North East Delhi", t: "High-Density"},
+                    {n: "East Delhi", t: "Urban"}, {n: "New Delhi", t: "VVIP/Admin"},
+                    {n: "North West Delhi (SC)", t: "Rural-Industrial"}, {n: "West Delhi", t: "Residential"},
+                    {n: "South Delhi", t: "Posh/Mixed"}
+                ]
+            }
+        },
+        vs: {
+            title: "Vidhan Sabha (70 Seats)",
+            groups: {
+                "Chandni Chowk Area": ["Adarsh Nagar","Chandni Chowk","Matia Mahal","Ballimaran","Shakur Basti","Model Town","Sadar Bazar","Wazirpur","Shalimar Bagh","Tri Nagar"],
+                "North East Area": ["Burari","Timarpur","Seemapuri","Rohtas Nagar","Seelampur","Ghonda","Babarpur","Gokalpur","Mustafabad","Karawal Nagar"],
+                "East Delhi Area": ["Jangpura","Okhla","Trilokpuri","Kondli","Patparganj","Laxmi Nagar","Krishna Nagar","Gandhi Nagar","Shahdara","Vishwas Nagar"],
+                "New Delhi Area": ["Karol Bagh","Patel Nagar","Moti Nagar","Delhi Cantt","Rajinder Nagar","New Delhi","Kasturba Nagar","Malviya Nagar","RK Puram","Greater Kailash"],
+                "North West Area": ["Narela","Badli","Rithala","Bawana","Mundka","Kirari","Sultanpur Majra","Nangloi Jat","Mangolpuri","Rohini"],
+                "West Delhi Area": ["Madipur","Rajouri Garden","Hari Nagar","Tilak Nagar","Janakpuri","Vikaspuri","Uttam Nagar","Dwarka","Matiala","Najafgarh"],
+                "South Delhi Area": ["Bijwasan","Palam","Mehrauli","Chhatarpur","Deoli","Ambedkar Nagar","Sangam Vihar","Kalkaji","Tughlakabad","Badarpur"]
+            }
+        },
+        mcd: {
+            title: "MCD (250 Wards)",
+            groups: {
+                "Narela Zone": ["Narela","Bankner","Holambi Kalan","Alipur","Bakhtawarpur","Palla","Kadipur","Mukundpur","Sant Nagar","Jharoda","Burari","Kadipur Ext","Libaspur","Bhalaswa","Jahangirpuri","Samaypur Badli"],
+                "Civil Lines": ["Adarsh Nagar","Azadpur","Dhirpur","Mukherjee Nagar","Timarpur","Malka Ganj","Kamla Nagar","Shakti Nagar","Model Town","Wazirpur","Ashok Vihar","Keshavpuram","Nimri Colony","Sawan Park","Bharat Nagar","Sangam Park"],
+                "Rohini Zone": ["Shalimar Bagh N","Shalimar Bagh S","Pitampura","Saraswati Vihar","Rani Bagh","Kohat Enclave","Shakurpur","Tri Nagar","Rampura","Onkar Nagar","Rohini-A","Rohini-B","Rohini-C","Rohini-D","Rohini-E","Rithala","Vijay Vihar","Budh Vihar","Pooth Kalan","Begumpur","Shahbad Dairy","Pooth Khurd","Bawana"],
+                "Keshav Puram": ["Nangal Thakran","Kanjhawala","Rani Khera","Mundka","Nilothi","Kirari","Prem Nagar","Mubarakpur","Nithari","Aman Vihar","Mangolpuri","Sultanpur Majra","Jwalapuri","Nangloi Jat","Nihal Vihar"],
+                "City-Sadar": ["Madipur","Punjabi Bagh","Raja Garden","Rajouri Garden","Tagore Garden","Vishnu Garden","Khyala","Tilak Nagar","Pratap Nagar","Hari Nagar","Subhash Nagar","Janakpuri S"],
+                "Karol Bagh": ["Janakpuri N","Vikaspuri","Hastsal","Vikas Nagar","Kunwar Singh Nagar","Baprola","Mohan Garden","Nawada","Uttam Nagar","Bindapur","Dabri","Sagarpur","Manglapuri"],
+                "West Zone": Array.from({length:25},(_,i)=>`West Ward ${96+i}`),
+                "Najafgarh": Array.from({length:30},(_,i)=>`Najafgarh Ward ${121+i}`),
+                "South Zone": Array.from({length:25},(_,i)=>`South Ward ${151+i}`),
+                "Central Zone": Array.from({length:25},(_,i)=>`Central Ward ${176+i}`),
+                "Shahdara South": Array.from({length:25},(_,i)=>`Shah.S Ward ${201+i}`),
+                "Shahdara North": Array.from({length:25},(_,i)=>`Shah.N Ward ${226+i}`)
+            }
+        }
+    };
+
+    // --- VIEW RENDERER ---
+    function loadView(key, btnElement) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+        
+        const container = document.getElementById('mainContent');
+        const data = delhiData[key];
+        
+        let html = `<div class="section-header"><h1 class="page-title">${data.title}</h1><div class="page-subtitle">Select a constituency to view AI Simulation</div></div>`;
+        
+        for (const [group, seats] of Object.entries(data.groups)) {
+            html += `<div class="zone-container"><div class="zone-title">${group}</div><div class="seats-grid">`;
+            seats.forEach(seat => {
+                let name = typeof seat === 'object' ? seat.n : seat;
+                let type = typeof seat === 'object' ? seat.t : determineType(name);
+                html += `<div class="seat-card" onclick="openSim('${name}', '${type}', '${key}')">
+                            <div class="seat-name">${name}</div>
+                            <div class="seat-meta">${type}</div>
+                         </div>`;
+            });
+            html += `</div></div>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function determineType(name) {
+        if(name.match(/Vihar|Enclave|Park|Kunj|Bagh/)) return "Residential";
+        if(name.match(/Nagar|Garden|Colony/)) return "Urban";
+        if(name.match(/Pur|Kalan|Khurd|Dairy|Village/)) return "Rural-Mix";
+        if(name.match(/Chowk|Bazar|Mandi|Place/)) return "Commercial";
+        if(name.match(/Cantt|Area/)) return "Restricted";
+        return "High-Density";
+    }
+
+    // --- SIMULATION LOGIC ---
+    let currentSim = {};
+    let myChart = null;
+
+    function openSim(name, type, level) {
+        currentSim = calculateMetrics(name, type, level);
+        
+        document.getElementById('simSeatName').innerText = name;
+        document.getElementById('simSeatType').innerText = `${level.toUpperCase()} • ${type.toUpperCase()}`;
+        document.getElementById('simOverlay').classList.add('active');
+        
+        updateSimTab('governance');
+    }
+
+    function closeSim() {
+        document.getElementById('simOverlay').classList.remove('active');
+    }
+
+    // --- CORE LOGIC: Calculates metrics based on Level (LS/VS/MCD) and Type (Rural/Urban) ---
+    function calculateMetrics(name, type, level) {
+        const isLS = level === 'ls';
+        const isVS = level === 'vs';
+        const isMCD = level === 'mcd';
+
+        // Base Values
+        let mccDays = isLS ? 1300 : (isVS ? 900 : 600);
+        let fatigue = isLS ? 80 : (isVS ? 70 : 90);
+        let cost = isLS ? 95 : (isVS ? 40 : 10);
+        
+        // Modifiers based on Type
+        if (type.includes('Commercial')) { fatigue += 10; cost += 20; }
+        if (type.includes('Rural')) { mccDays += 100; cost -= 5; }
+
+        return {
+            name, type, level,
+            gov: {
+                mcc: { curr: mccDays, onoe: mccDays * 0.5 }, // 50% reduction
+                turnout: { curr: 58, onoe: 64 },
+                continuity: { curr: 45, onoe: 85 }
+            },
+            admin: {
+                fatigue: { curr: fatigue, onoe: fatigue * 0.4 },
+                complaints: { curr: isMCD ? 1200 : 400, onoe: isMCD ? 800 : 250 },
+                deployments: { curr: isLS ? 9 : (isVS ? 7 : 12), onoe: 5 }
+            },
+            fin: {
+                cost: { curr: cost, onoe: cost * 0.65 }, // 35% savings
+                logistics: { curr: 100, onoe: 45 }
+            },
+            const: {
+                stability: { curr: isLS ? 60 : 50, onoe: 90 },
+                conflict: { curr: isVS ? 90 : 40, onoe: 20 } // High conflict for Vidhan Sabha (Art 239AA)
+            }
+        };
+    }
+
+    function updateSimTab(tab) {
+        document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
+        event.target.closest('.sim-tab').classList.add('active');
+        
+        const container = document.getElementById('metricContainer');
+        const aiText = document.getElementById('aiText');
+        const d = currentSim;
+        let labels, d1, d2, chartLabel;
+
+        if (tab === 'governance') {
+            container.innerHTML = 
+                createMetric("MCC Pause", d.gov.mcc.curr + " Days", "▼ 50% Cut", "good") +
+                createMetric("Voter Turnout", d.gov.turnout.curr + "%", "▲ Boost", "good") +
+                createMetric("Policy Continuity", d.gov.continuity.curr, "▲ Stable", "good");
+            
+            labels = ['MCC Days', 'Turnout', 'Continuity'];
+            d1 = [d.gov.mcc.curr, d.gov.turnout.curr, d.gov.continuity.curr];
+            d2 = [d.gov.mcc.onoe, d.gov.turnout.onoe, d.gov.continuity.onoe];
+            chartLabel = "Governance Metrics";
+            
+            aiText.innerHTML = `<strong>${d.name}</strong> (${d.level.toUpperCase()}) faces frequent MCC pauses. Under ONOE, the development freeze period drops to <strong>${d.gov.mcc.onoe} days</strong> over 5 years.`;
+        
+        } else if (tab === 'administrative') {
+            container.innerHTML = 
+                createMetric("Staff Fatigue", d.admin.fatigue.curr, "▼ Relief", "good") +
+                createMetric("Deployments", d.admin.deployments.curr, "▼ Saved", "good") +
+                createMetric("Complaints", d.admin.complaints.curr, "▼ Drop", "good");
+
+            labels = ['Fatigue', 'Deployments', 'Complaints/10'];
+            d1 = [d.admin.fatigue.curr, d.admin.deployments.curr * 10, d.admin.complaints.curr/10];
+            d2 = [d.admin.fatigue.onoe, d.admin.deployments.onoe * 10, d.admin.complaints.onoe/10];
+            chartLabel = "Admin Load";
+
+            aiText.innerHTML = `Administrative staff in <strong>${d.name}</strong> are deployed <strong>${d.admin.deployments.curr} times</strong>. ONOE consolidates this to 5, saving millions in man-hours.`;
+
+        } else if (tab === 'financial') {
+            container.innerHTML = 
+                createMetric("Candidate Spend", "₹"+d.fin.cost.curr+"L", "▼ Savings", "good") +
+                createMetric("Logistics Load", d.fin.logistics.curr, "▼ Shared", "good") +
+                createMetric("Resources", "High", "▼ Optimal", "good");
+
+            labels = ['Spend (Lakhs)', 'Logistics', 'Efficiency'];
+            d1 = [d.fin.cost.curr, d.fin.logistics.curr, 40];
+            d2 = [d.fin.cost.onoe, d.fin.logistics.onoe, 90];
+            chartLabel = "Financial Efficiency";
+
+            aiText.innerHTML = `Election cost in <strong>${d.name}</strong> is projected to drop by <strong>35%</strong> due to shared electoral rolls, security, and EVM logistics.`;
+        
+        } else if (tab === 'constitutional') {
+             container.innerHTML = 
+                createMetric("Stability", d.const.stability.curr, "▲ Strong", "good") +
+                createMetric("Fed. Conflict", d.const.conflict.curr, "▼ Low", "good") +
+                createMetric("Mandate Sync", "None", "Aligned", "good");
+
+            labels = ['Stability', 'Conflict', 'Alignment'];
+            d1 = [d.const.stability.curr, d.const.conflict.curr, 20];
+            d2 = [d.const.stability.onoe, d.const.conflict.onoe, 95];
+            chartLabel = "Constitutional Health";
+
+            aiText.innerHTML = d.level === 'vs' 
+                ? `<strong>Vidhan Sabha</strong> seats like ${d.name} face high friction (Art 239AA). ONOE aligns the mandate with the Centre, reducing policy paralysis.`
+                : `Synchronized elections ensure <strong>${d.name}</strong> has a stable representative term aligned with national and local bodies.`;
+        }
+
+        renderChart(labels, d1, d2, chartLabel);
+    }
+
+    function createMetric(label, val, delta, type) {
+        const colorClass = type === 'good' ? 'delta-good' : 'delta-bad';
+        return `<div class="metric-card">
+            <div class="metric-label">${label}</div>
+            <div class="metric-value">${val}</div>
+            <div class="metric-delta ${colorClass}"><i class="fas fa-arrow-right"></i> ${delta}</div>
+        </div>`;
+    }
+
+    function renderChart(labels, d1, d2, label) {
+        const ctx = document.getElementById('simChart').getContext('2d');
+        if(myChart) myChart.destroy();
+        
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Current System', data: d1, backgroundColor: '#3b82f6', borderRadius: 6, barPercentage: 0.6 },
+                    { label: 'ONOE Scenario', data: d2, backgroundColor: '#a855f7', borderRadius: 6, barPercentage: 0.6 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#cbd5e1' } } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    }
+
+    window.onload = function() { loadView('mcd', document.querySelector('.nav-btn.active')); };
+</script>
+</body>
+</html>

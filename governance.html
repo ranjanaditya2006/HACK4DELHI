@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NIRVACHANNEX – Governance simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="ui-system.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <img src="nirvachan logo.jpg" alt="NirvachanNex logo" />
+        </div>
+        <div>
+          <div class="brand-text-main">NIRVACHANNEX</div>
+          <div class="brand-text-sub">ONE NATION · ONE ELECTION</div>
+        </div>
+      </div>
+      <nav class="app-nav">
+        <a class="nav-pill" href="overview.html">Overview</a>
+        <a class="nav-pill nav-active" href="governance.html">Governance</a>
+        <a class="nav-pill" href="administrative.html">Administrative</a>
+        <a class="nav-pill" href="financial.html">Financial</a>
+        <a class="nav-pill" href="constitutional.html">Constitutional</a>
+        <a href="delhi.html" class="nav-pill">Delhi Module</a>
+      </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="overview-grid">
+      <!-- LEFT: governance simulator -->
+      <section class="glass-panel">
+        <div class="panel-glow"></div>
+
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <div class="panel-title">Governance continuity & voter fatigue</div>
+            <div class="panel-subtitle">
+              Adjust MCC days and fatigue assumptions to see how effective turnout and continuity index change
+              under the current system versus ONOE.
+            </div>
+          </div>
+          <div class="panel-tag">Governance module</div>
+        </div>
+
+        <div class="scenario-strip">
+          <div class="scenario-toggle">
+            <button class="scenario-btn scenario-btn-active" data-scenario="current">Current system</button>
+            <button class="scenario-btn" data-scenario="onoe">Synchronised ONOE</button>
+          </div>
+          <div class="scenario-badge" id="gov-scenario-note">
+            Current system as baseline. Δ compares ONOE against this view.
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="gov-kpi-grid"></div>
+
+        <div class="chart-section">
+          <div class="chart-shell">
+            <div class="chart-header-text">
+              City‑wise effective turnout after fatigue
+            </div>
+            <div class="chart-subtext">
+              Bars compare baseline turnout (2019) with effective turnout after fatigue in the selected scenario.
+              Hover a bar to see city‑level details.
+            </div>
+            <div class="chart-area">
+              <div class="chart-grid"></div>
+              <div class="chart-inner">
+                <div class="chart-root" id="gov-chart-root"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="verdict-text" id="gov-verdict"></div>
+      </section>
+
+      <!-- RIGHT: controls -->
+      <section class="glass-panel-soft">
+        <div class="right-panel-inner">
+          <h2 style="font-size:0.92rem;margin-bottom:4px;">Governance controls</h2>
+          <p class="right-intro">
+            These knobs feed into administrative, financial and constitutional reasoning. Keep them aligned with
+            your scenario on other tabs.
+          </p>
+
+          <div class="metric-stack">
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">MCC days per election</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#4ef2ff,#88ffea);">
+                  M
+                </div>
+              </div>
+              <div class="metric-value"><span id="mcc-days-label">50</span> days</div>
+              <div class="metric-caption">
+                Total MCC over 5 years = elections × this value. ONOE compresses this into a single national window.
+              </div>
+              <input id="mcc-days-slider" type="range" min="30" max="80" step="5" value="50" style="width:100%;margin-top:6px;" />
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">Fatigue reduction under ONOE</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#9c6bff,#4ef2ff);">
+                  F
+                </div>
+              </div>
+              <div class="metric-value"><span id="fatigue-factor-label">0.70</span> ×</div>
+              <div class="metric-caption">
+                Multiplier applied to turnout‑drop in ONOE. Lower means stronger reduction in voter fatigue.
+              </div>
+              <input id="fatigue-factor-slider" type="range" min="0.4" max="0.9" step="0.05" value="0.7" style="width:100%;margin-top:6px;" />
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-title">ONOE MCC window length</div>
+                <div class="metric-icon" style="background:linear-gradient(135deg,#ffc857,#ff8f57);">
+                  W
+                </div>
+              </div>
+              <div class="metric-value"><span id="onoe-window-label">65</span> days</div>
+              <div class="metric-caption">
+                Approximate length of the combined national MCC period under ONOE, reused across modules.
+              </div>
+              <input id="onoe-window-slider" type="range" min="45" max="90" step="5" value="65" style="width:100%;margin-top:6px;" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>© 2025 NirvachanNex – Governance Simulator</footer>
+  </div>
+
+  <!-- shared tooltip like overview.html -->
+  <div id="chart-tooltip"></div>
+
+  <script>
+    // --- DATA (same 10 metros) ---
+    const govCities = [
+      { name: "Mumbai",     voters: 9.8, turnout: 55.4, polls: 3, fatigueDrop: 4 },
+      { name: "Delhi (NCT)",voters:14.3, turnout: 60.6, polls: 3, fatigueDrop: 6 },
+      { name: "Bengaluru",  voters: 9.5, turnout: 54.1, polls: 3, fatigueDrop: 3 },
+      { name: "Hyderabad",  voters: 4.0, turnout: 44.8, polls: 3, fatigueDrop: 2 },
+      { name: "Chennai",    voters: 3.8, turnout: 59.1, polls: 2, fatigueDrop: 1 },
+      { name: "Kolkata",    voters: 3.3, turnout: 65.2, polls: 3, fatigueDrop: 2 },
+      { name: "Ahmedabad",  voters: 3.9, turnout: 62.7, polls: 2, fatigueDrop: 2 },
+      { name: "Pune",       voters: 3.3, turnout: 49.9, polls: 3, fatigueDrop: 4 },
+      { name: "Surat",      voters: 3.1, turnout: 64.5, polls: 2, fatigueDrop: 1 },
+      { name: "Jaipur",     voters: 4.1, turnout: 68.5, polls: 2, fatigueDrop: 2 }
+    ];
+
+    const govParams = {
+      mccDaysPerElection: 50,
+      onoeWindowDays: 65,
+      fatigueReductionONOE: 0.7
+    };
+
+    let govScenario = "current";
+
+    function computeGovMetrics(scenario) {
+      const fatigueFactor = scenario === "current" ? 1 : govParams.fatigueReductionONOE;
+
+      let totalMccDays = 0;
+      let turnoutSum   = 0;
+      let votersSum    = 0;
+
+      const perCity = govCities.map(c => {
+        const polls = c.polls;
+        const mcc =
+          scenario === "current"
+            ? polls * govParams.mccDaysPerElection
+            : govParams.onoeWindowDays;
+
+        const effTurnout = c.turnout - c.fatigueDrop * fatigueFactor;
+
+        totalMccDays += mcc;
+        turnoutSum   += effTurnout;
+        votersSum    += c.voters;
+
+        return { ...c, mcc, effTurnout };
+      });
+
+      const avgEffTurnout = turnoutSum / govCities.length;
+      const govIndex      = (1 - totalMccDays / (5 * 365)) * 100;
+
+      return { totalMccDays, avgEffTurnout, govIndex, perCity, votersSum };
+    }
+
+    const govKpiGrid     = document.getElementById("gov-kpi-grid");
+    const govChartRoot   = document.getElementById("gov-chart-root");
+    const govVerdict     = document.getElementById("gov-verdict");
+    const govScenarioNote= document.getElementById("gov-scenario-note");
+    const tooltipEl      = document.getElementById("chart-tooltip");
+
+    function showTooltip(x, y, title, lines) {
+      tooltipEl.innerHTML = `
+        <div id="chart-tooltip-title">${title}</div>
+        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
+      tooltipEl.style.left = x + 12 + "px";
+      tooltipEl.style.top  = y + 12 + "px";
+      tooltipEl.style.display = "block";
+    }
+
+    function hideTooltip() {
+      tooltipEl.style.display = "none";
+    }
+
+    function renderGovKPIs() {
+      govKpiGrid.innerHTML = "";
+      const cur  = computeGovMetrics("current");
+      const onoe = computeGovMetrics("onoe");
+
+      const base  = govScenario === "current" ? cur  : onoe;
+      const other = govScenario === "current" ? onoe : cur;
+      const sign  = govScenario === "current" ? 1 : -1;
+
+      const cards = [
+        {
+          label: "Total MCC days · 5 yrs",
+          value: base.totalMccDays,
+          delta: (other.totalMccDays - base.totalMccDays) * sign,
+          unit: " days",
+          better: "lower"
+        },
+        {
+          label: "Avg effective turnout",
+          value: base.avgEffTurnout,
+          delta: (other.avgEffTurnout - base.avgEffTurnout) * sign,
+          unit: " %",
+          better: "higher"
+        },
+        {
+          label: "Governance continuity index",
+          value: base.govIndex,
+          delta: (other.govIndex - base.govIndex) * sign,
+          unit: " /100",
+          better: "higher"
+        }
+      ];
+
+      cards.forEach(card => {
+        const edge =
+          card.delta === 0
+            ? " · Neutral"
+            : (card.better === "higher" && card.delta > 0) ||
+              (card.better === "lower" && card.delta < 0)
+            ? " · Other scenario edge"
+            : " · Current view edge";
+
+        const div = document.createElement("div");
+        div.className = "kpi-card";
+        div.innerHTML = `
+          <div class="kpi-label">${card.label}</div>
+          <div class="kpi-value">${card.value.toFixed(1)}${card.unit}</div>
+          <div class="kpi-delta">
+            Δ ${(card.delta >= 0 ? "+" : "") + card.delta.toFixed(1)}${card.unit}${edge}
+          </div>`;
+        govKpiGrid.appendChild(div);
+      });
+
+      govScenarioNote.textContent =
+        govScenario === "current"
+          ? "Current system as baseline. Δ compares ONOE against this view."
+          : "ONOE as baseline. Δ compares returning to staggered cycles.";
+    }
+
+    function renderGovChart() {
+      govChartRoot.innerHTML = "";
+      const metrics = computeGovMetrics(govScenario);
+
+      const height = govChartRoot.clientHeight || 160;
+      const barWidth = 18;
+      const totalWidth = govChartRoot.clientWidth || 640;
+      const groupWidth = barWidth * 2 + 6;
+      const x0 = 8;
+      const gap =
+        (totalWidth - x0 * 2 - groupWidth * metrics.perCity.length) /
+        Math.max(metrics.perCity.length - 1, 1);
+
+      let maxTurn = 0;
+      metrics.perCity.forEach(c => {
+        maxTurn = Math.max(maxTurn, c.turnout, c.effTurnout);
+      });
+
+      metrics.perCity.forEach((c, idx) => {
+        const xBase = x0 + idx * (groupWidth + gap);
+        const baseH = (c.turnout / maxTurn)     * (height * 0.9);
+        const effH  = (c.effTurnout / maxTurn) * (height * 0.9);
+
+        const attachTooltip = (el, payload) => {
+          el.addEventListener("mousemove", e =>
+            showTooltip(e.clientX, e.clientY, payload.title, payload.lines)
+          );
+          el.addEventListener("mouseleave", hideTooltip);
+        };
+
+        const barBase = document.createElement("div");
+        barBase.className = "bar bar-secondary";
+        barBase.style.left   = xBase + "px";
+        barBase.style.width  = barWidth + "px";
+        barBase.style.height = baseH + "px";
+        attachTooltip(barBase, {
+          title: c.name + " · Baseline turnout",
+          lines: [
+            "Turnout 2019: " + c.turnout.toFixed(1) + " %",
+            "Registered voters: " + c.voters.toFixed(1) + " M"
+          ]
+        });
+        govChartRoot.appendChild(barBase);
+
+        const barEff = document.createElement("div");
+        barEff.className = "bar " + (govScenario === "current" ? "bar-current" : "bar-sync");
+        barEff.style.left   = xBase + barWidth + 3 + "px";
+        barEff.style.width  = barWidth + "px";
+        barEff.style.height = effH + "px";
+        attachTooltip(barEff, {
+          title: c.name + " · " + (govScenario === "current" ? "Current system" : "ONOE"),
+          lines: [
+            "Effective turnout: " + c.effTurnout.toFixed(1) + " %",
+            "MCC days (city): " + c.mcc.toFixed(0)
+          ]
+        });
+        govChartRoot.appendChild(barEff);
+
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.style.left = xBase + groupWidth / 2 + "px";
+        label.style.bottom = "-18px";
+        label.textContent = c.name.split(" ")[0];
+        govChartRoot.appendChild(label);
+      });
+
+      const other = computeGovMetrics(govScenario === "current" ? "onoe" : "current");
+      const dGov  = other.govIndex - metrics.govIndex;
+      govVerdict.textContent =
+        "In this configuration, switching to the other scenario would change the governance continuity index by " +
+        (dGov >= 0 ? "+" : "") +
+        dGov.toFixed(1) +
+        " points while affecting both turnout and MCC days across metros.";
+    }
+
+    function renderGovAll() {
+      renderGovKPIs();
+      renderGovChart();
+    }
+
+    document.querySelectorAll(".scenario-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".scenario-btn")
+          .forEach(b => b.classList.remove("scenario-btn-active"));
+        btn.classList.add("scenario-btn-active");
+        govScenario = btn.dataset.scenario;
+        renderGovAll();
+      });
+    });
+
+    document.getElementById("mcc-days-slider").oninput = e => {
+      govParams.mccDaysPerElection = Number(e.target.value);
+      document.getElementById("mcc-days-label").textContent = e.target.value;
+      renderGovAll();
+    };
+    document.getElementById("fatigue-factor-slider").oninput = e => {
+      govParams.fatigueReductionONOE = Number(e.target.value);
+      document.getElementById("fatigue-factor-label").textContent =
+        Number(e.target.value).toFixed(2);
+      renderGovAll();
+    };
+    document.getElementById("onoe-window-slider").oninput = e => {
+      govParams.onoeWindowDays = Number(e.target.value);
+      document.getElementById("onoe-window-label").textContent = e.target.value;
+      renderGovAll();
+    };
+
+    window.addEventListener("resize", renderGovChart);
+    renderGovAll();
+  </script>
+</body>
+</html>
