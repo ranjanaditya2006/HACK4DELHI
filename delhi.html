@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delhi Electoral Module | One Nation One Election</title>
+    <title>NirvachanNex | AI Electoral Simulator</title>
     <link rel="stylesheet" href="ui-system.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -124,27 +124,35 @@
     </header>
 
     <div class="delhi-layout">
+        <!-- SIDEBAR -->
         <aside class="delhi-sidebar">
             <div class="nav-btn active" onclick="loadView('mcd', this)">
                 <div class="nav-icon"><i class="fas fa-map-marked-alt"></i></div>
-                <div>MCD (Local)<div style="font-size:0.7rem; color:#64748b;">250 Wards</div></div>
+                <div>MCD (Local)<div style="font-size:0.7rem; color:#64748b;" id="mcd-count">Loading...</div></div>
             </div>
             <div class="nav-btn" onclick="loadView('vs', this)">
                 <div class="nav-icon"><i class="fas fa-gavel"></i></div>
-                <div>Vidhan Sabha<div style="font-size:0.7rem; color:#64748b;">70 Seats</div></div>
+                <div>Vidhan Sabha<div style="font-size:0.7rem; color:#64748b;" id="vs-count">Loading...</div></div>
             </div>
             <div class="nav-btn" onclick="loadView('ls', this)">
                 <div class="nav-icon"><i class="fas fa-landmark"></i></div>
-                <div>Lok Sabha<div style="font-size:0.7rem; color:#64748b;">7 Seats</div></div>
+                <div>Lok Sabha<div style="font-size:0.7rem; color:#64748b;" id="ls-count">Loading...</div></div>
             </div>
         </aside>
 
+        <!-- DYNAMIC CONTENT AREA -->
         <main class="delhi-content" id="mainContent">
-            <!-- Content will be injected here -->
+            <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                <div style="text-align:center; color:#64748b;">
+                    <i class="fas fa-server fa-3x" style="margin-bottom:15px;"></i><br>
+                    Connecting to NirvachanNex Cloud...
+                </div>
+            </div>
         </main>
     </div>
 </div>
 
+<!-- SIMULATOR OVERLAY -->
 <div class="sim-overlay" id="simOverlay">
     <div class="sim-window">
         <div class="sim-header-bar">
@@ -168,7 +176,7 @@
                 </div>
                 <div class="ai-box">
                     <div class="ai-title"><i class="fas fa-robot"></i> AI IMPACT ANALYSIS</div>
-                    <p style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;" id="aiText">Loading...</p>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;" id="aiText">Waiting for AI Model...</p>
                 </div>
             </div>
         </div>
@@ -176,202 +184,149 @@
 </div>
 
 <script>
-    // --- DATA STORE ---
-    const delhiData = {
-        ls: {
-            title: "Lok Sabha (7 Seats)",
-            groups: {
-                "National Capital Territory": [
-                    {n: "Chandni Chowk", t: "Commercial"}, {n: "North East Delhi", t: "High-Density"},
-                    {n: "East Delhi", t: "Urban"}, {n: "New Delhi", t: "VVIP/Admin"},
-                    {n: "North West Delhi (SC)", t: "Rural-Industrial"}, {n: "West Delhi", t: "Residential"},
-                    {n: "South Delhi", t: "Posh/Mixed"}
-                ]
-            }
-        },
-        vs: {
-            title: "Vidhan Sabha (70 Seats)",
-            groups: {
-                "Chandni Chowk Area": ["Adarsh Nagar","Chandni Chowk","Matia Mahal","Ballimaran","Shakur Basti","Model Town","Sadar Bazar","Wazirpur","Shalimar Bagh","Tri Nagar"],
-                "North East Area": ["Burari","Timarpur","Seemapuri","Rohtas Nagar","Seelampur","Ghonda","Babarpur","Gokalpur","Mustafabad","Karawal Nagar"],
-                "East Delhi Area": ["Jangpura","Okhla","Trilokpuri","Kondli","Patparganj","Laxmi Nagar","Krishna Nagar","Gandhi Nagar","Shahdara","Vishwas Nagar"],
-                "New Delhi Area": ["Karol Bagh","Patel Nagar","Moti Nagar","Delhi Cantt","Rajinder Nagar","New Delhi","Kasturba Nagar","Malviya Nagar","RK Puram","Greater Kailash"],
-                "North West Area": ["Narela","Badli","Rithala","Bawana","Mundka","Kirari","Sultanpur Majra","Nangloi Jat","Mangolpuri","Rohini"],
-                "West Delhi Area": ["Madipur","Rajouri Garden","Hari Nagar","Tilak Nagar","Janakpuri","Vikaspuri","Uttam Nagar","Dwarka","Matiala","Najafgarh"],
-                "South Delhi Area": ["Bijwasan","Palam","Mehrauli","Chhatarpur","Deoli","Ambedkar Nagar","Sangam Vihar","Kalkaji","Tughlakabad","Badarpur"]
-            }
-        },
-        mcd: {
-            title: "MCD (250 Wards)",
-            groups: {
-                "Narela Zone": ["Narela","Bankner","Holambi Kalan","Alipur","Bakhtawarpur","Palla","Kadipur","Mukundpur","Sant Nagar","Jharoda","Burari","Kadipur Ext","Libaspur","Bhalaswa","Jahangirpuri","Samaypur Badli"],
-                "Civil Lines": ["Adarsh Nagar","Azadpur","Dhirpur","Mukherjee Nagar","Timarpur","Malka Ganj","Kamla Nagar","Shakti Nagar","Model Town","Wazirpur","Ashok Vihar","Keshavpuram","Nimri Colony","Sawan Park","Bharat Nagar","Sangam Park"],
-                "Rohini Zone": ["Shalimar Bagh N","Shalimar Bagh S","Pitampura","Saraswati Vihar","Rani Bagh","Kohat Enclave","Shakurpur","Tri Nagar","Rampura","Onkar Nagar","Rohini-A","Rohini-B","Rohini-C","Rohini-D","Rohini-E","Rithala","Vijay Vihar","Budh Vihar","Pooth Kalan","Begumpur","Shahbad Dairy","Pooth Khurd","Bawana"],
-                "Keshav Puram": ["Nangal Thakran","Kanjhawala","Rani Khera","Mundka","Nilothi","Kirari","Prem Nagar","Mubarakpur","Nithari","Aman Vihar","Mangolpuri","Sultanpur Majra","Jwalapuri","Nangloi Jat","Nihal Vihar"],
-                "City-Sadar": ["Madipur","Punjabi Bagh","Raja Garden","Rajouri Garden","Tagore Garden","Vishnu Garden","Khyala","Tilak Nagar","Pratap Nagar","Hari Nagar","Subhash Nagar","Janakpuri S"],
-                "Karol Bagh": ["Janakpuri N","Vikaspuri","Hastsal","Vikas Nagar","Kunwar Singh Nagar","Baprola","Mohan Garden","Nawada","Uttam Nagar","Bindapur","Dabri","Sagarpur","Manglapuri"],
-                "West Zone": Array.from({length:25},(_,i)=>`West Ward ${96+i}`),
-                "Najafgarh": Array.from({length:30},(_,i)=>`Najafgarh Ward ${121+i}`),
-                "South Zone": Array.from({length:25},(_,i)=>`South Ward ${151+i}`),
-                "Central Zone": Array.from({length:25},(_,i)=>`Central Ward ${176+i}`),
-                "Shahdara South": Array.from({length:25},(_,i)=>`Shah.S Ward ${201+i}`),
-                "Shahdara North": Array.from({length:25},(_,i)=>`Shah.N Ward ${226+i}`)
-            }
-        }
-    };
-
-    // --- VIEW RENDERER ---
-    function loadView(key, btnElement) {
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        btnElement.classList.add('active');
-        
-        const container = document.getElementById('mainContent');
-        const data = delhiData[key];
-        
-        let html = `<div class="section-header"><h1 class="page-title">${data.title}</h1><div class="page-subtitle">Select a constituency to view AI Simulation</div></div>`;
-        
-        for (const [group, seats] of Object.entries(data.groups)) {
-            html += `<div class="zone-container"><div class="zone-title">${group}</div><div class="seats-grid">`;
-            seats.forEach(seat => {
-                let name = typeof seat === 'object' ? seat.n : seat;
-                let type = typeof seat === 'object' ? seat.t : determineType(name);
-                html += `<div class="seat-card" onclick="openSim('${name}', '${type}', '${key}')">
-                            <div class="seat-name">${name}</div>
-                            <div class="seat-meta">${type}</div>
-                         </div>`;
-            });
-            html += `</div></div>`;
-        }
-        container.innerHTML = html;
-    }
-
-    function determineType(name) {
-        if(name.match(/Vihar|Enclave|Park|Kunj|Bagh/)) return "Residential";
-        if(name.match(/Nagar|Garden|Colony/)) return "Urban";
-        if(name.match(/Pur|Kalan|Khurd|Dairy|Village/)) return "Rural-Mix";
-        if(name.match(/Chowk|Bazar|Mandi|Place/)) return "Commercial";
-        if(name.match(/Cantt|Area/)) return "Restricted";
-        return "High-Density";
-    }
-
-    // --- SIMULATION LOGIC ---
+    const API_BASE_URL = "http://localhost:5000/api";
     let currentSim = {};
     let myChart = null;
 
-    function openSim(name, type, level) {
-        currentSim = calculateMetrics(name, type, level);
+    // --- 1. DYNAMIC DATA LOADER ---
+    async function loadView(level, btnElement) {
+        // UI Updates
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
         
-        document.getElementById('simSeatName').innerText = name;
-        document.getElementById('simSeatType').innerText = `${level.toUpperCase()} • ${type.toUpperCase()}`;
+        const container = document.getElementById('mainContent');
+        container.innerHTML = '<div style="text-align:center; padding:50px; color:#64748b;">Fetching Seats from Database...</div>';
+
+        try {
+            // Fetch Seats from MongoDB via Node Backend
+            const res = await fetch(`${API_BASE_URL}/seats/${level}`);
+            const seats = await res.json();
+            
+            if(!seats || seats.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#ef4444;">No seats found in database for ${level.toUpperCase()}.<br>Did you run 'node seed.js'?</div>`;
+                return;
+            }
+
+            // Render Grid
+            let title = level === 'ls' ? "Lok Sabha" : (level === 'vs' ? "Vidhan Sabha" : "MCD Wards");
+            let html = `<div class="section-header"><h1 class="page-title">${title}</h1><div class="page-subtitle">Loaded ${seats.length} constituencies from cloud</div></div>`;
+            
+            html += `<div class="zone-container"><div class="seats-grid">`;
+            seats.forEach(seat => {
+                html += `<div class="seat-card" onclick="openSim('${seat._id}', '${seat.name}')">
+                            <div class="seat-name">${seat.name}</div>
+                            <div class="seat-meta">${seat.type}</div>
+                         </div>`;
+            });
+            html += `</div></div>`;
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error(error);
+            container.innerHTML = `<div style="text-align:center; color:#ef4444;">Connection Failed.<br>Is the backend running on port 5000?</div>`;
+        }
+    }
+
+    // --- 2. SIMULATION ENGINE CONNECTED TO BACKEND ---
+    async function openSim(seatId, seatName) {
         document.getElementById('simOverlay').classList.add('active');
-        
-        updateSimTab('governance');
+        document.getElementById('simSeatName').innerText = seatName;
+        document.getElementById('simSeatType').innerText = "CALCULATING...";
+        document.getElementById('metricContainer').innerHTML = "<div style='color:#64748b'>Simulating scenarios...</div>";
+        document.getElementById('aiText').innerText = "Connecting to Gemini AI Neural Network...";
+
+        try {
+            // Step A: Run Math Simulation on Server
+            const simRes = await fetch(`${API_BASE_URL}/simulate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seatId: seatId })
+            });
+            
+            const simData = await simRes.json();
+            currentSim = simData; // Store Global State
+
+            // Update UI with Real Data
+            document.getElementById('simSeatType').innerText = `${simData.seat_info.level.toUpperCase()} • ${simData.seat_info.type.toUpperCase()}`;
+            updateSimTab('governance'); // Render Default Tab
+
+            // Step B: Ask AI for Analysis
+            const aiRes = await fetch(`${API_BASE_URL}/ai-analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    seatName: simData.seat_info.name,
+                    seatType: simData.seat_info.type,
+                    metrics: simData.metrics
+                })
+            });
+
+            const aiData = await aiRes.json();
+            typeWriterEffect(document.getElementById('aiText'), aiData.analysis);
+
+        } catch (error) {
+            console.error("Sim Error:", error);
+            document.getElementById('aiText').innerText = "Simulation Error: " + error.message;
+        }
     }
 
     function closeSim() {
         document.getElementById('simOverlay').classList.remove('active');
     }
 
-    // --- CORE LOGIC: Calculates metrics based on Level (LS/VS/MCD) and Type (Rural/Urban) ---
-    function calculateMetrics(name, type, level) {
-        const isLS = level === 'ls';
-        const isVS = level === 'vs';
-        const isMCD = level === 'mcd';
-
-        // Base Values
-        let mccDays = isLS ? 1300 : (isVS ? 900 : 600);
-        let fatigue = isLS ? 80 : (isVS ? 70 : 90);
-        let cost = isLS ? 95 : (isVS ? 40 : 10);
-        
-        // Modifiers based on Type
-        if (type.includes('Commercial')) { fatigue += 10; cost += 20; }
-        if (type.includes('Rural')) { mccDays += 100; cost -= 5; }
-
-        return {
-            name, type, level,
-            gov: {
-                mcc: { curr: mccDays, onoe: mccDays * 0.5 }, // 50% reduction
-                turnout: { curr: 58, onoe: 64 },
-                continuity: { curr: 45, onoe: 85 }
-            },
-            admin: {
-                fatigue: { curr: fatigue, onoe: fatigue * 0.4 },
-                complaints: { curr: isMCD ? 1200 : 400, onoe: isMCD ? 800 : 250 },
-                deployments: { curr: isLS ? 9 : (isVS ? 7 : 12), onoe: 5 }
-            },
-            fin: {
-                cost: { curr: cost, onoe: cost * 0.65 }, // 35% savings
-                logistics: { curr: 100, onoe: 45 }
-            },
-            const: {
-                stability: { curr: isLS ? 60 : 50, onoe: 90 },
-                conflict: { curr: isVS ? 90 : 40, onoe: 20 } // High conflict for Vidhan Sabha (Art 239AA)
-            }
-        };
-    }
-
+    // --- 3. UI RENDERING (Tabs & Charts) ---
     function updateSimTab(tab) {
         document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
         event.target.closest('.sim-tab').classList.add('active');
         
         const container = document.getElementById('metricContainer');
-        const aiText = document.getElementById('aiText');
-        const d = currentSim;
+        const d = currentSim.metrics; // Data comes from Backend now
+        const info = currentSim.seat_info;
         let labels, d1, d2, chartLabel;
 
         if (tab === 'governance') {
             container.innerHTML = 
                 createMetric("MCC Pause", d.gov.mcc.curr + " Days", "▼ 50% Cut", "good") +
-                createMetric("Voter Turnout", d.gov.turnout.curr + "%", "▲ Boost", "good") +
-                createMetric("Policy Continuity", d.gov.continuity.curr, "▲ Stable", "good");
+                createMetric("Voter Turnout", "58%", "▲ Boost", "good") +
+                createMetric("Continuity", "Stable", "Aligned", "good");
             
             labels = ['MCC Days', 'Turnout', 'Continuity'];
-            d1 = [d.gov.mcc.curr, d.gov.turnout.curr, d.gov.continuity.curr];
-            d2 = [d.gov.mcc.onoe, d.gov.turnout.onoe, d.gov.continuity.onoe];
+            d1 = [d.gov.mcc.curr, 58, 45];
+            d2 = [d.gov.mcc.onoe, 64, 85];
             chartLabel = "Governance Metrics";
-            
-            aiText.innerHTML = `<strong>${d.name}</strong> (${d.level.toUpperCase()}) faces frequent MCC pauses. Under ONOE, the development freeze period drops to <strong>${d.gov.mcc.onoe} days</strong> over 5 years.`;
         
         } else if (tab === 'administrative') {
             container.innerHTML = 
-                createMetric("Staff Fatigue", d.admin.fatigue.curr, "▼ Relief", "good") +
+                createMetric("Staff Fatigue", "High", "▼ Relief", "good") +
                 createMetric("Deployments", d.admin.deployments.curr, "▼ Saved", "good") +
-                createMetric("Complaints", d.admin.complaints.curr, "▼ Drop", "good");
+                createMetric("Complaints", "High", "▼ Drop", "good");
 
             labels = ['Fatigue', 'Deployments', 'Complaints/10'];
-            d1 = [d.admin.fatigue.curr, d.admin.deployments.curr * 10, d.admin.complaints.curr/10];
-            d2 = [d.admin.fatigue.onoe, d.admin.deployments.onoe * 10, d.admin.complaints.onoe/10];
+            d1 = [80, d.admin.deployments.curr * 10, 40];
+            d2 = [30, d.admin.deployments.onoe * 10, 25];
             chartLabel = "Admin Load";
-
-            aiText.innerHTML = `Administrative staff in <strong>${d.name}</strong> are deployed <strong>${d.admin.deployments.curr} times</strong>. ONOE consolidates this to 5, saving millions in man-hours.`;
 
         } else if (tab === 'financial') {
             container.innerHTML = 
                 createMetric("Candidate Spend", "₹"+d.fin.cost.curr+"L", "▼ Savings", "good") +
-                createMetric("Logistics Load", d.fin.logistics.curr, "▼ Shared", "good") +
-                createMetric("Resources", "High", "▼ Optimal", "good");
+                createMetric("Logistics Load", "High", "▼ Shared", "good") +
+                createMetric("Efficiency", "Low", "▲ High", "good");
 
             labels = ['Spend (Lakhs)', 'Logistics', 'Efficiency'];
-            d1 = [d.fin.cost.curr, d.fin.logistics.curr, 40];
-            d2 = [d.fin.cost.onoe, d.fin.logistics.onoe, 90];
+            d1 = [d.fin.cost.curr, 90, 40];
+            d2 = [d.fin.cost.onoe, 45, 90];
             chartLabel = "Financial Efficiency";
-
-            aiText.innerHTML = `Election cost in <strong>${d.name}</strong> is projected to drop by <strong>35%</strong> due to shared electoral rolls, security, and EVM logistics.`;
         
         } else if (tab === 'constitutional') {
              container.innerHTML = 
                 createMetric("Stability", d.const.stability.curr, "▲ Strong", "good") +
-                createMetric("Fed. Conflict", d.const.conflict.curr, "▼ Low", "good") +
+                createMetric("Fed. Conflict", "High", "▼ Low", "good") +
                 createMetric("Mandate Sync", "None", "Aligned", "good");
 
             labels = ['Stability', 'Conflict', 'Alignment'];
-            d1 = [d.const.stability.curr, d.const.conflict.curr, 20];
-            d2 = [d.const.stability.onoe, d.const.conflict.onoe, 95];
+            d1 = [d.const.stability.curr, 80, 20];
+            d2 = [d.const.stability.onoe, 30, 95];
             chartLabel = "Constitutional Health";
-
-            aiText.innerHTML = d.level === 'vs' 
-                ? `<strong>Vidhan Sabha</strong> seats like ${d.name} face high friction (Art 239AA). ONOE aligns the mandate with the Centre, reducing policy paralysis.`
-                : `Synchronized elections ensure <strong>${d.name}</strong> has a stable representative term aligned with national and local bodies.`;
         }
 
         renderChart(labels, d1, d2, chartLabel);
@@ -410,6 +365,20 @@
         });
     }
 
+    function typeWriterEffect(element, text, speed = 20) {
+        element.innerHTML = "";
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            }
+        }
+        type();
+    }
+
+    // Initial Load
     window.onload = function() { loadView('mcd', document.querySelector('.nav-btn.active')); };
 </script>
 </body>
