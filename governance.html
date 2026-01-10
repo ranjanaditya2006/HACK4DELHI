@@ -149,11 +149,11 @@
                   M
                 </div>
               </div>
-              <div class="metric-value"><span id="mcc-days-label">50</span> days</div>
+              <div class="metric-value"><span id="mcc-days-label">30</span> days</div>
               <div class="metric-caption">
                 Total MCC over 5 years = elections × this value. ONOE compresses this into a single national window.
               </div>
-              <input id="mcc-days-slider" type="range" min="30" max="80" step="5" value="50" style="width:100%;margin-top:6px;" />
+              <input id="mcc-days-slider" type="range" min="30" max="80" step="5" value="30" style="width:100%;margin-top:6px;" />
             </div>
 
             <div class="metric-card">
@@ -177,11 +177,11 @@
                   W
                 </div>
               </div>
-              <div class="metric-value"><span id="onoe-window-label">65</span> days</div>
+              <div class="metric-value"><span id="onoe-window-label">45</span> days</div>
               <div class="metric-caption">
                 Approximate length of the combined national MCC period under ONOE, reused across modules.
               </div>
-              <input id="onoe-window-slider" type="range" min="45" max="90" step="5" value="65" style="width:100%;margin-top:6px;" />
+              <input id="onoe-window-slider" type="range" min="45" max="90" step="5" value="45" style="width:100%;margin-top:6px;" />
             </div>
           </div>
         </div>
@@ -209,9 +209,11 @@
       { name: "Jaipur",     voters: 4.1, turnout: 68.5, polls: 2, fatigueDrop: 2 }
     ];
 
+    // Practical MCC assumptions aligned with overview:
+    // ~30 days per major election; ONOE single ~45‑day window in 5 years.
     const govParams = {
-      mccDaysPerElection: 50,
-      onoeWindowDays: 65,
+      mccDaysPerElection: 30,
+      onoeWindowDays: 45,
       fatigueReductionONOE: 0.7
     };
 
@@ -231,7 +233,6 @@
             ? polls * govParams.mccDaysPerElection
             : govParams.onoeWindowDays;
 
-        // Effective Turnout calculation based on scenario
         const effTurnout = c.turnout - c.fatigueDrop * fatigueFactor;
 
         totalMccDays += mcc;
@@ -247,53 +248,50 @@
       return { totalMccDays, avgEffTurnout, govIndex, perCity, votersSum };
     }
 
-    const govKpiGrid     = document.getElementById("gov-kpi-grid");
-    const govChartRoot   = document.getElementById("gov-chart-root");
-    const govVerdict     = document.getElementById("gov-verdict");
-    const govScenarioNote= document.getElementById("gov-scenario-note");
-    const tooltipEl      = document.getElementById("chart-tooltip");
+    const govKpiGrid      = document.getElementById("gov-kpi-grid");
+    const govChartRoot    = document.getElementById("gov-chart-root");
+    const govVerdict      = document.getElementById("gov-verdict");
+    const govScenarioNote = document.getElementById("gov-scenario-note");
+    const tooltipEl       = document.getElementById("chart-tooltip");
 
-    // NEW SHOW TOOLTIP FUNCTION
+    // Tooltip
     function showTooltip(data, type) {
-        const title = type === 'base' ? `${data.name} · Baseline` : `${data.name} · ${govScenario === 'current' ? 'Current' : 'ONOE'}`;
-        
-        let content = "";
-        
-        if (type === 'base') {
-            content = `
-             <div class="tooltip-header">${title}</div>
-             <div class="tooltip-row">
-                <span>Baseline (2019):</span>
-                <span class="tooltip-val" style="color:#94a3b8">${data.turnout.toFixed(1)} %</span>
-             </div>
-             <div class="tooltip-row">
-                <span>Registered voters:</span>
-                <span class="tooltip-val">${data.voters.toFixed(1)} M</span>
-             </div>
-            `;
-        } else {
-             // Dynamic data based on current scenario
-             const scenarioColor = govScenario === "current" ? "#4ef2ff" : "#d946ef"; // Blue for Current, Purple/Pink for ONOE logic if desired, or stick to theme
-             const activeColor = "#4ef2ff"; // Keeping cyan for effective turnout as per theme
+      const title = type === 'base' ? `${data.name} · Baseline` : `${data.name} · ${govScenario === 'current' ? 'Current' : 'ONOE'}`;
+      
+      let content = "";
+      
+      if (type === 'base') {
+        content = `
+         <div class="tooltip-header">${title}</div>
+         <div class="tooltip-row">
+            <span>Baseline (2019):</span>
+            <span class="tooltip-val" style="color:#94a3b8">${data.turnout.toFixed(1)} %</span>
+         </div>
+         <div class="tooltip-row">
+            <span>Registered voters:</span>
+            <span class="tooltip-val">${data.voters.toFixed(1)} M</span>
+         </div>
+        `;
+      } else {
+        const activeColor = "#4ef2ff";
+        content = `
+         <div class="tooltip-header">${title}</div>
+         <div class="tooltip-row">
+            <span>Effective turnout:</span>
+            <span class="tooltip-val" style="color:${activeColor}">${data.effTurnout.toFixed(1)} %</span>
+         </div>
+         <div class="tooltip-row">
+            <span>MCC days (city):</span>
+            <span class="tooltip-val">${data.mcc.toFixed(0)}</span>
+         </div>
+         <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+            ${govScenario === "current" ? "Impacted by voter fatigue" : "Improved by synchronized cycle"}
+         </div>
+        `;
+      }
 
-             content = `
-             <div class="tooltip-header">${title}</div>
-             <div class="tooltip-row">
-                <span>Effective turnout:</span>
-                <span class="tooltip-val" style="color:${activeColor}">${data.effTurnout.toFixed(1)} %</span>
-             </div>
-             <div class="tooltip-row">
-                <span>MCC days (city):</span>
-                <span class="tooltip-val">${data.mcc.toFixed(0)}</span>
-             </div>
-             <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-                ${govScenario === "current" ? "Impacted by voter fatigue" : "Improved by synchronized cycle"}
-             </div>
-            `;
-        }
-
-        tooltipEl.innerHTML = content;
-        tooltipEl.style.display = "block";
+      tooltipEl.innerHTML = content;
+      tooltipEl.style.display = "block";
     }
 
     function hideTooltip() {
@@ -382,30 +380,26 @@
         const baseH = (c.turnout / maxTurn)     * (height * 0.9);
         const effH  = (c.effTurnout / maxTurn) * (height * 0.9);
 
-        // --- 1. Baseline Bar (Grey/Secondary) ---
+        // Baseline bar
         const barBase = document.createElement("div");
         barBase.className = "bar bar-secondary";
         barBase.style.left   = xBase + "px";
         barBase.style.width  = barWidth + "px";
         barBase.style.height = baseH + "px";
-        // Pass 'base' type for specific tooltip
         barBase.addEventListener("mousemove", () => showTooltip(c, 'base'));
         barBase.addEventListener("mouseleave", hideTooltip);
         govChartRoot.appendChild(barBase);
 
-        // --- 2. Effective Turnout Bar (Colored) ---
+        // Effective turnout bar
         const barEff = document.createElement("div");
         barEff.className = "bar " + (govScenario === "current" ? "bar-current" : "bar-sync");
         barEff.style.left   = xBase + barWidth + 3 + "px";
         barEff.style.width  = barWidth + "px";
         barEff.style.height = effH + "px";
-        
-        // Pass 'eff' type (default) for specific tooltip with scenario data
         barEff.addEventListener("mousemove", () => showTooltip(c, 'eff'));
         barEff.addEventListener("mouseleave", hideTooltip);
         govChartRoot.appendChild(barEff);
 
-        // Label
         const label = document.createElement("div");
         label.className = "bar-label";
         label.style.left = xBase + groupWidth / 2 + "px";

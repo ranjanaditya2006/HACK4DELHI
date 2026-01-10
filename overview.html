@@ -165,14 +165,16 @@
       { name: "Jaipur",     voters: 4.1,  turnout: 68.5, polls: 2, fatigueDrop: 2,  adminStress: 7.0 }
     ];
 
+    // MCC assumptions revised to keep totals realistic:
+    // Current: ~30 days per major election; ONOE: single ~45‑day window in 5 years.
     const params = {
-      mccDaysPerElection: 50,
-      onoeWindowDays: 65,
-      fatigueReductionONOE: 0.7, 
-      adminReductionONOE: 0.3    
+      mccDaysPerElection: 30,   // per election, realistic short window
+      onoeWindowDays: 45,       // one combined ONOE window over 5 years
+      fatigueReductionONOE: 0.7,
+      adminReductionONOE: 0.6
     };
 
-    let activeScenario = "current"; 
+    let activeScenario = "current";
 
     function computeScenarioMetrics(scenario) {
       const fatigueFactor = scenario === "current" ? 1 : params.fatigueReductionONOE;
@@ -185,11 +187,11 @@
 
       const perCity = cities.map(c => {
         const polls = c.polls;
+        // With these numbers, typical total MCC over 5 years stays in a few hundred days, not 1300+.
         const mcc = scenario === "current" ? polls * params.mccDaysPerElection : params.onoeWindowDays;
-        
-        // Calculate dynamic values per scenario
+
         const effTurnout = c.turnout - (c.fatigueDrop * fatigueFactor);
-        const adminLoad  = c.adminStress * adminFactor; 
+        const adminLoad  = c.adminStress * adminFactor;
 
         totalMccDays += mcc;
         turnoutSum   += effTurnout;
@@ -225,12 +227,12 @@
       return { cur, onoe };
     }
 
-    const kpiGrid     = document.getElementById("kpi-grid");
-    const chartRoot   = document.getElementById("chart-root");
-    const verdictText = document.getElementById("verdict-text");
+    const kpiGrid         = document.getElementById("kpi-grid");
+    const chartRoot       = document.getElementById("chart-root");
+    const verdictText     = document.getElementById("verdict-text");
     const scenarioTagText = document.getElementById("scenario-tag-text");
-    const metricStack = document.getElementById("metric-stack");
-    const tooltipEl   = document.getElementById("chart-tooltip");
+    const metricStack     = document.getElementById("metric-stack");
+    const tooltipEl       = document.getElementById("chart-tooltip");
 
     function renderKPIs() {
       kpiGrid.innerHTML = "";
@@ -241,28 +243,36 @@
         {
           label: "Total MCC days · 5 yrs",
           value: base.totalMccDays,
-          delta: activeScenario === "current" ? (onoe.totalMccDays - cur.totalMccDays) : (cur.totalMccDays - onoe.totalMccDays), 
+          delta: activeScenario === "current"
+            ? (onoe.totalMccDays - cur.totalMccDays)
+            : (cur.totalMccDays - onoe.totalMccDays), 
           unit: " days",
           better: "lower"
         },
         {
           label: "Avg effective turnout",
           value: base.avgEffTurnout,
-          delta: activeScenario === "current" ? (onoe.avgEffTurnout - cur.avgEffTurnout) : (cur.avgEffTurnout - onoe.avgEffTurnout),
+          delta: activeScenario === "current"
+            ? (onoe.avgEffTurnout - cur.avgEffTurnout)
+            : (cur.avgEffTurnout - onoe.avgEffTurnout),
           unit: " %",
           better: "higher"
         },
         {
           label: "Avg admin stress index",
           value: base.avgAdminLoad,
-          delta: activeScenario === "current" ? (onoe.avgAdminLoad - cur.avgAdminLoad) : (cur.avgAdminLoad - onoe.avgAdminLoad),
+          delta: activeScenario === "current"
+            ? (onoe.avgAdminLoad - cur.avgAdminLoad)
+            : (cur.avgAdminLoad - onoe.avgAdminLoad),
           unit: "",
           better: "lower"
         },
         {
           label: "Governance continuity index",
           value: base.governanceIndex,
-          delta: activeScenario === "current" ? (onoe.governanceIndex - cur.governanceIndex) : (cur.governanceIndex - onoe.governanceIndex),
+          delta: activeScenario === "current"
+            ? (onoe.governanceIndex - cur.governanceIndex)
+            : (cur.governanceIndex - onoe.governanceIndex),
           unit: " /100",
           better: "higher"
         },
@@ -285,9 +295,9 @@
       cards.forEach(card => {
         let edge = "";
         if (card.better !== "na" && card.delta !== 0) {
-            const isPositive = card.delta > 0;
-            const isGood = (card.better === "higher" && isPositive) || (card.better === "lower" && !isPositive);
-            edge = isGood ? " · ONOE edge" : "";
+          const isPositive = card.delta > 0;
+          const isGood = (card.better === "higher" && isPositive) || (card.better === "lower" && !isPositive);
+          edge = isGood ? " · ONOE edge" : "";
         }
 
         const div = document.createElement("div");
@@ -318,13 +328,12 @@
       const gap = (totalWidth - 20 - groupWidth * 10) / 9;
 
       const { cur, onoe } = computeDelta();
-      // Select ONLY the data for the ACTIVE scenario
       const dataToRender = activeScenario === "current" ? cur.perCity : onoe.perCity;
       
       dataToRender.forEach((d, i) => {
         const xBase = 10 + i * (groupWidth + gap);
         
-        // --- 1. Turnout Bar (Cyan) ---
+        // Turnout Bar (Cyan)
         const hTurn = (d.effTurnout / 100) * height; 
         const b1 = document.createElement("div");
         b1.className = "bar";
@@ -332,13 +341,11 @@
         b1.style.width = barWidth + "px";
         b1.style.height = hTurn + "px";
         b1.style.background = "linear-gradient(180deg, #4ef2ff 0%, #2563eb 100%)";
-        
-        // Pass 'turnout' type so tooltip only shows Turnout data
         b1.addEventListener("mousemove", () => showTooltip(d, 'turnout'));
         b1.addEventListener("mouseleave", hideTooltip);
         chartRoot.appendChild(b1);
 
-        // --- 2. Admin Stress Bar (Purple) ---
+        // Admin Stress Bar (Purple)
         const hAdmin = (d.adminLoad / 10) * height; 
         const b2 = document.createElement("div");
         b2.className = "bar";
@@ -346,8 +353,6 @@
         b2.style.width = barWidth + "px";
         b2.style.height = hAdmin + "px";
         b2.style.background = "linear-gradient(180deg, #d946ef 0%, #7c3aed 100%)";
-
-        // Pass 'admin' type so tooltip only shows Admin data
         b2.addEventListener("mousemove", () => showTooltip(d, 'admin'));
         b2.addEventListener("mouseleave", hideTooltip);
         chartRoot.appendChild(b2);
@@ -367,7 +372,7 @@
       const govShift = onoe.governanceIndex - cur.governanceIndex;
       verdictText.innerHTML = activeScenario === "current" 
         ? "<strong>Status Quo:</strong> High administrative load (purple bars) and frequent elections reduce effective governance time."
-        : `<strong>ONOE Impact:</strong> Governance continuity improves by <strong>+${govShift.toFixed(1)} points</strong>, recovering ~650 days of MCC time.`;
+        : `<strong>ONOE Impact:</strong> Governance continuity improves by <strong>+${govShift.toFixed(1)} points</strong>, with MCC time reduced to more realistic, consolidated windows instead of long scattered periods.`;
     }
 
     function renderRightDashboard() {
@@ -376,10 +381,10 @@
       
       const isOnoe = activeScenario === "onoe";
       
-      const alignVal = isOnoe ? 94.2 : 22.0;
+      const alignVal = isOnoe ? 90.0 : 25.0;
       const adminDrift = isOnoe ? (onoe.avgAdminLoad - cur.avgAdminLoad) : 0; 
       const turnRes = isOnoe ? (onoe.avgEffTurnout - cur.avgEffTurnout) : 0;
-      const stressScore = isOnoe ? 24.9 : 85.5;
+      const stressScore = isOnoe ? 30.0 : 80.0;
 
       const cards = [
         {
@@ -396,7 +401,7 @@
           color: "linear-gradient(135deg,#ffc857,#ff8f57)",
           value: adminDrift.toFixed(1),
           caption: "Average change in staff‑fatigue index across metros (negative = improvement).",
-          ratio: Math.abs(adminDrift) / 5
+          ratio: Math.min(Math.abs(adminDrift) / 5, 1)
         },
         {
           title: "Turnout resilience",
@@ -404,7 +409,7 @@
           color: "linear-gradient(135deg,#9c6bff,#4ef2ff)",
           value: turnRes.toFixed(1) + " pts",
           caption: "Gain in effective turnout due to reduced voter fatigue.",
-          ratio: Math.abs(turnRes) / 5
+          ratio: Math.min(Math.abs(turnRes) / 5, 1)
         },
         {
           title: "Design stress score",
@@ -448,7 +453,7 @@
               <span class="tooltip-val" style="color:#4ef2ff">${data.effTurnout.toFixed(1)} %</span>
           </div>
           <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-            ${activeScenario === "current" ? "Reduced by election fatigue" : "Boosted by sync efficiency"}
+            ${activeScenario === "current" ? "Reduced by repeated election fatigue" : "Improved by fewer, more focused elections"}
           </div>
         `;
       } else if (type === 'admin') {
@@ -461,7 +466,7 @@
               <span class="tooltip-val" style="color:#d946ef">${data.adminLoad.toFixed(1)} / 10</span>
           </div>
           <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-            ${activeScenario === "current" ? "High burden due to frequency" : "Lower burden in sync cycle"}
+            ${activeScenario === "current" ? "Higher burden from multiple polls" : "Lower burden with a single cycle"}
           </div>
         `;
       }
