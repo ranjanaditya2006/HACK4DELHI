@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NIRVACHANNEX – Stakeholder Impact & Sensitivity</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="ui-system.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <img src="nirvachan logo.jpg" alt="NirvachanNex logo" />
+        </div>
+        <div>
+          <div class="brand-text-main">NIRVACHANNEX</div>
+          <div class="brand-text-sub">ONE NATION · ONE ELECTION</div>
+        </div>
+      </div>
+
+      <nav class="app-nav">
+        <a class="nav-pill" href="overview.html">Overview</a>
+        <a class="nav-pill" href="governance.html">Governance</a>
+        <a class="nav-pill" href="administrative.html">Administrative</a>
+        <a class="nav-pill" href="financial.html">Financial</a>
+        <a class="nav-pill" href="constitutional.html">Constitutional</a>
+        <a class="nav-pill nav-active" href="stakeholders.html">Stakeholders</a>
+        <a class="nav-pill" href="delhi.html">Delhi Module</a>
+      </nav>
+    </header>
+
+    <!-- MAIN -->
+    <main class="overview-grid">
+
+      <!-- LEFT PANEL -->
+      <section class="glass-panel">
+
+        <!-- Panel header -->
+        <div class="panel-header">
+          <div class="panel-title">Stakeholder impact analysis</div>
+          <div class="panel-subtitle">
+            Distributional effects of synchronized elections across political actors and state capacities.
+          </div>
+          <div class="panel-tag">Analytical model · Not prescriptive</div>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="kpi-grid" id="stakeholder-kpis"></div>
+
+        <!-- Stakeholder pressure chart -->
+        <div class="chart-section">
+          <div class="chart-shell">
+            <div class="chart-header-text">Relative stakeholder pressure</div>
+            <div class="chart-subtext">
+              Composite pressure index combining campaign reach, cost sensitivity, and turnout risk.
+            </div>
+
+            <div class="chart-area">
+              <div class="stakeholder-chart" id="stakeholder-chart"></div>
+              <div class="chart-legend">
+                Higher values indicate greater coordination, cost, and turnout stress under ONOE.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global comparative context -->
+        <div class="chart-section">
+          <div class="chart-shell">
+            <div class="chart-header-text">Global comparative context</div>
+            <div class="chart-subtext">
+              Selected international experiences with synchronized or consolidated elections.
+            </div>
+
+            <div class="global-cases">
+
+              <div class="case-card">
+                <div class="case-title">South Africa</div>
+                <div class="case-text">
+                  National and provincial elections are synchronized, improving administrative efficiency.
+                  However, local elections remain separate, preserving subnational political competition.
+                </div>
+              </div>
+
+              <div class="case-card">
+                <div class="case-title">Sweden</div>
+                <div class="case-text">
+                  Fully synchronized elections across levels increased turnout stability, but required strong
+                  party institutionalization and high voter literacy to manage ballot complexity.
+                </div>
+              </div>
+
+              <div class="case-card">
+                <div class="case-title">Philippines</div>
+                <div class="case-text">
+                  Partial synchronization reduced election frequency but amplified campaign costs and elite
+                  dominance, raising concerns about unequal political access.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Verdict -->
+        <div class="verdict-text" id="stakeholder-verdict"></div>
+
+      </section>
+
+      <!-- RIGHT PANEL -->
+      <section class="glass-panel-soft">
+        <div class="right-panel-inner">
+          <h3>Assumption sensitivity</h3>
+          <p class="right-intro">
+            Explore how stakeholder outcomes change when key assumptions weaken or reverse.
+          </p>
+
+          <div class="metric-stack">
+
+            <div class="metric-card">
+              <div class="metric-title">Election cost under ONOE</div>
+              <div class="metric-value">
+                <span id="costVal">0.90</span> × current
+              </div>
+              <input type="range"
+                     min="0.85"
+                     max="1.20"
+                     step="0.05"
+                     value="0.9"
+                     id="costSlider" />
+              <div class="metric-caption">
+                Values above 1 imply higher-than-expected synchronization costs.
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-title">Turnout disruption factor</div>
+              <div class="metric-value">
+                <span id="turnoutVal">1.00</span> × baseline
+              </div>
+              <input type="range"
+                     min="0.85"
+                     max="1.40"
+                     step="0.05"
+                     value="1.0"
+                     id="turnoutSlider" />
+              <div class="metric-caption">
+                Captures ballot complexity, voter fatigue, and information overload risk.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      © 2025 NirvachanNex · Stakeholder & Sensitivity Module
+    </footer>
+
+  </div>
+
+  <script src="stakeholders.js"></script>
+</body>
+</html>

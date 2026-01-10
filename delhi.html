@@ -176,7 +176,7 @@
                 </div>
                 <div class="ai-box">
                     <div class="ai-title"><i class="fas fa-robot"></i> AI IMPACT ANALYSIS</div>
-                    <p style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;" id="aiText">Waiting for AI Model...</p>
+                    <p style="font-size: 1.05rem; line-height: 1.6; color: #e2e8f0; font-family: 'Inter', sans-serif;" id="aiText">Waiting for AI Model...</p>
                 </div>
             </div>
         </div>
@@ -187,31 +187,32 @@
     const API_BASE_URL = "http://localhost:5000/api";
     let currentSim = {};
     let myChart = null;
+    let typeWriterTimeout = null;
+
+    const DELHI_DATA = { pollingStaff: 100000, securityForce: 55000 };
+    const LS_CONSTITUENCIES = {
+        "Chandni Chowk": { focus: "preserving old heritage and managing trade", area: "Old Delhi" },
+        "North East Delhi": { focus: "improving crowded urban areas", area: "Seelampur" },
+        "East Delhi": { focus: "better housing and cleaning up landfills", area: "Laxmi Nagar" },
+        "New Delhi": { focus: "managing government offices and diplomatic areas", area: "Lutyens Delhi" },
+        "North West Delhi (SC)": { focus: "industrial safety and worker welfare", area: "Rohini" },
+        "West Delhi": { focus: "metro expansion and traffic control", area: "Dwarka" },
+        "South Delhi": { focus: "protecting green areas and managing colonies", area: "Mehrauli" }
+    };
 
     // --- 1. DYNAMIC DATA LOADER ---
     async function loadView(level, btnElement) {
-        // UI Updates
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         if(btnElement) btnElement.classList.add('active');
-        
         const container = document.getElementById('mainContent');
-        container.innerHTML = '<div style="text-align:center; padding:50px; color:#64748b;">Fetching Seats from Database...</div>';
-
+        
         try {
-            // Fetch Seats from MongoDB via Node Backend
             const res = await fetch(`${API_BASE_URL}/seats/${level}`);
             const seats = await res.json();
-            
-            if(!seats || seats.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color:#ef4444;">No seats found in database for ${level.toUpperCase()}.<br>Did you run 'node seed.js'?</div>`;
-                return;
-            }
+            if(!seats || seats.length === 0) { container.innerHTML = "No seats found."; return; }
 
-            // Render Grid
             let title = level === 'ls' ? "Lok Sabha" : (level === 'vs' ? "Vidhan Sabha" : "MCD Wards");
-            let html = `<div class="section-header"><h1 class="page-title">${title}</h1><div class="page-subtitle">Loaded ${seats.length} constituencies from cloud</div></div>`;
-            
-            html += `<div class="zone-container"><div class="seats-grid">`;
+            let html = `<div class="section-header"><h1 class="page-title">${title}</h1></div><div class="zone-container"><div class="seats-grid">`;
             seats.forEach(seat => {
                 html += `<div class="seat-card" onclick="openSim('${seat._id}', '${seat.name}')">
                             <div class="seat-name">${seat.name}</div>
@@ -220,68 +221,111 @@
             });
             html += `</div></div>`;
             container.innerHTML = html;
-
-        } catch (error) {
-            console.error(error);
-            container.innerHTML = `<div style="text-align:center; color:#ef4444;">Connection Failed.<br>Is the backend running on port 5000?</div>`;
-        }
+        } catch (error) { container.innerHTML = "Connection Failed."; }
     }
 
-    // --- 2. SIMULATION ENGINE CONNECTED TO BACKEND ---
+    // --- 2. SIMULATION ENGINE ---
     async function openSim(seatId, seatName) {
         document.getElementById('simOverlay').classList.add('active');
         document.getElementById('simSeatName').innerText = seatName;
-        document.getElementById('simSeatType').innerText = "CALCULATING...";
-        document.getElementById('metricContainer').innerHTML = "<div style='color:#64748b'>Simulating scenarios...</div>";
-        document.getElementById('aiText').innerText = "Connecting to Gemini AI Neural Network...";
+        document.getElementById('simSeatType').innerText = "Loading...";
+        
+        // Reset Text immediately
+        if(typeWriterTimeout) clearTimeout(typeWriterTimeout);
+        document.getElementById('aiText').innerText = "Analyzing...";
 
         try {
-            // Step A: Run Math Simulation on Server
             const simRes = await fetch(`${API_BASE_URL}/simulate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ seatId: seatId })
             });
-            
             const simData = await simRes.json();
-            currentSim = simData; // Store Global State
+            currentSim = simData;
 
-            // Update UI with Real Data
-            document.getElementById('simSeatType').innerText = `${simData.seat_info.level.toUpperCase()} • ${simData.seat_info.type.toUpperCase()}`;
-            updateSimTab('governance'); // Render Default Tab
-
-            // Step B: Ask AI for Analysis
-            const aiRes = await fetch(`${API_BASE_URL}/ai-analyze`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    seatName: simData.seat_info.name,
-                    seatType: simData.seat_info.type,
-                    metrics: simData.metrics
-                })
-            });
-
-            const aiData = await aiRes.json();
-            typeWriterEffect(document.getElementById('aiText'), aiData.analysis);
+            const seatType = simData.seat_info.type || "Unknown";
+            const seatLevel = simData.seat_info.level || "Unknown";
+            
+            document.getElementById('simSeatType').innerText = `${seatLevel.toUpperCase()} • ${seatType.toUpperCase()}`;
+            
+            // --- FIX: AUTOMATICALLY TRIGGER GOVERNANCE ANALYSIS ---
+            updateSimTab('governance'); 
 
         } catch (error) {
-            console.error("Sim Error:", error);
-            document.getElementById('aiText').innerText = "Simulation Error: " + error.message;
+            document.getElementById('aiText').innerText = "System Error.";
         }
     }
 
-    function closeSim() {
-        document.getElementById('simOverlay').classList.remove('active');
+    // --- 3. SIMPLE ENGLISH INSIGHT GENERATOR ---
+    function generateInsight(name, level, tab, metrics) {
+        const cleanLevel = level ? level.toLowerCase() : "unknown";
+        const cleanName = name.replace(/[()]/g, "").trim();
+        const costSaved = (metrics.fin.cost.curr - metrics.fin.cost.onoe).toFixed(1);
+        const daysSaved = metrics.gov.mcc.curr - metrics.gov.mcc.onoe;
+
+        let insight = "";
+
+        // MCD
+        if (cleanLevel.includes('mcd') || cleanLevel.includes('ward')) {
+            if (tab === 'governance') {
+                insight = `For ${cleanName}, holding elections together means the government stops working for fewer days. Specifically, we save about ${daysSaved} days where road repairs and cleaning contracts would usually be stuck. This means work gets done faster.`;
+            } else if (tab === 'administrative') {
+                insight = `In ${cleanName}, local teachers and staff are usually overworked during elections. With this new system, their workload drops significantly. They can spend 40 more days teaching instead of doing election duty.`;
+            } else if (tab === 'financial') {
+                insight = `Running a separate election for just this ward costs a lot of money. By combining it with national elections, we save around ₹${costSaved} Lakhs in ${cleanName}. This money can be used to fix local parks instead.`;
+            } else { 
+                insight = `It makes sure the local council in ${cleanName} works for a full 5 years without being interrupted by other elections happening in the state or country. It gives the local team a clear run to finish their job.`;
+            }
+        }
+        // VIDHAN SABHA
+        else if (cleanLevel.includes('vidhan') || cleanLevel.includes('assembly') || cleanLevel.includes('vs')) {
+            if (tab === 'governance') {
+                insight = `Currently, the Delhi government has to stop new projects in ${cleanName} every time an election happens. This system fixes that. It gives the government a full 5-year window to improve schools and hospitals here without interruptions.`;
+            } else if (tab === 'administrative') {
+                insight = `The police and district officers in ${cleanName} are currently busy with elections too often. This change frees them up, so they can focus on keeping the neighborhood safe instead of managing voting booths all the time.`;
+            } else if (tab === 'financial') {
+                insight = `We waste money setting up booths twice. By doing it once, ${cleanName} saves ₹${costSaved} Lakhs. That is enough money to repair several kilometers of colony roads in this area.`;
+            } else {
+                insight = `It stops the conflict between the State and Central government elections. For ${cleanName}, it means the MLA can focus on their job without worrying about campaigning for a different election every other year.`;
+            }
+        }
+        // LOK SABHA
+        else if (cleanLevel.includes('lok') || cleanLevel.includes('parliament') || cleanLevel.includes('ls')) {
+            const lsData = LS_CONSTITUENCIES[name] || { focus: "national policy", area: "Delhi" };
+            if (tab === 'governance') {
+                insight = `For ${cleanName}, the main goal is ${lsData.focus}. A single election means the Member of Parliament can focus entirely on passing laws for ${lsData.area} without being distracted by upcoming local elections.`;
+            } else if (tab === 'administrative') {
+                insight = `This is a big area that needs huge security. Right now, moving police forces here repeatedly is hard. Doing it all at once reduces the burden on our security forces by half, keeping them fresh and effective.`;
+            } else if (tab === 'financial') {
+                insight = `Elections here are very expensive. Combining them saves a massive ₹${costSaved} Lakhs. To put that in perspective, that is five times the annual development fund this constituency gets.`;
+            } else {
+                insight = `It simplifies things for voters in ${cleanName}. They can choose their leader for the country and the state at the same time, making their voice heard clearly without confusion.`;
+            }
+        } 
+        else {
+            insight = `Please select a specific category above to see the detailed impact analysis for ${cleanName}.`;
+        }
+        return insight;
     }
 
-    // --- 3. UI RENDERING (Tabs & Charts) ---
+    // --- 4. FIXED TAB SWITCHER ---
     function updateSimTab(tab) {
-        document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
-        event.target.closest('.sim-tab').classList.add('active');
+        if (window.event) {
+            const clickedBtn = window.event.target.closest('.sim-tab');
+            if (clickedBtn) {
+                document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
+                clickedBtn.classList.add('active');
+            }
+        } else {
+            // Force activate first tab if no event (manual call)
+            document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.sim-tab').classList.add('active');
+        }
         
+        if (!currentSim || !currentSim.metrics) return;
+        const d = currentSim.metrics; 
+        const seatInfo = currentSim.seat_info;
         const container = document.getElementById('metricContainer');
-        const d = currentSim.metrics; // Data comes from Backend now
-        const info = currentSim.seat_info;
         let labels, d1, d2, chartLabel;
 
         if (tab === 'governance') {
@@ -289,62 +333,51 @@
                 createMetric("MCC Pause", d.gov.mcc.curr + " Days", "▼ 50% Cut", "good") +
                 createMetric("Voter Turnout", "58%", "▲ Boost", "good") +
                 createMetric("Continuity", "Stable", "Aligned", "good");
-            
             labels = ['MCC Days', 'Turnout', 'Continuity'];
-            d1 = [d.gov.mcc.curr, 58, 45];
-            d2 = [d.gov.mcc.onoe, 64, 85];
+            d1 = [d.gov.mcc.curr, 58, 45]; d2 = [d.gov.mcc.onoe, 64, 85];
             chartLabel = "Governance Metrics";
-        
         } else if (tab === 'administrative') {
             container.innerHTML = 
                 createMetric("Staff Fatigue", "High", "▼ Relief", "good") +
                 createMetric("Deployments", d.admin.deployments.curr, "▼ Saved", "good") +
                 createMetric("Complaints", "High", "▼ Drop", "good");
-
             labels = ['Fatigue', 'Deployments', 'Complaints/10'];
-            d1 = [80, d.admin.deployments.curr * 10, 40];
-            d2 = [30, d.admin.deployments.onoe * 10, 25];
+            d1 = [80, d.admin.deployments.curr * 10, 40]; d2 = [30, d.admin.deployments.onoe * 10, 25];
             chartLabel = "Admin Load";
-
         } else if (tab === 'financial') {
             container.innerHTML = 
                 createMetric("Candidate Spend", "₹"+d.fin.cost.curr+"L", "▼ Savings", "good") +
                 createMetric("Logistics Load", "High", "▼ Shared", "good") +
                 createMetric("Efficiency", "Low", "▲ High", "good");
-
             labels = ['Spend (Lakhs)', 'Logistics', 'Efficiency'];
-            d1 = [d.fin.cost.curr, 90, 40];
-            d2 = [d.fin.cost.onoe, 45, 90];
+            d1 = [d.fin.cost.curr, 90, 40]; d2 = [d.fin.cost.onoe, 45, 90];
             chartLabel = "Financial Efficiency";
-        
         } else if (tab === 'constitutional') {
              container.innerHTML = 
                 createMetric("Stability", d.const.stability.curr, "▲ Strong", "good") +
                 createMetric("Fed. Conflict", "High", "▼ Low", "good") +
                 createMetric("Mandate Sync", "None", "Aligned", "good");
-
             labels = ['Stability', 'Conflict', 'Alignment'];
-            d1 = [d.const.stability.curr, 80, 20];
-            d2 = [d.const.stability.onoe, 30, 95];
+            d1 = [d.const.stability.curr, 80, 20]; d2 = [d.const.stability.onoe, 30, 95];
             chartLabel = "Constitutional Health";
         }
-
         renderChart(labels, d1, d2, chartLabel);
+
+        const simpleAnalysis = generateInsight(seatInfo.name, seatInfo.type, tab, d);
+        typeWriterEffect(document.getElementById('aiText'), simpleAnalysis);
     }
 
     function createMetric(label, val, delta, type) {
-        const colorClass = type === 'good' ? 'delta-good' : 'delta-bad';
         return `<div class="metric-card">
             <div class="metric-label">${label}</div>
             <div class="metric-value">${val}</div>
-            <div class="metric-delta ${colorClass}"><i class="fas fa-arrow-right"></i> ${delta}</div>
+            <div class="metric-delta ${type === 'good' ? 'delta-good' : 'delta-bad'}"><i class="fas fa-arrow-right"></i> ${delta}</div>
         </div>`;
     }
 
     function renderChart(labels, d1, d2, label) {
         const ctx = document.getElementById('simChart').getContext('2d');
         if(myChart) myChart.destroy();
-        
         myChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -365,20 +398,20 @@
         });
     }
 
-    function typeWriterEffect(element, text, speed = 20) {
+    function typeWriterEffect(element, text, speed = 10) {
+        if (typeWriterTimeout) clearTimeout(typeWriterTimeout);
         element.innerHTML = "";
         let i = 0;
         function type() {
             if (i < text.length) {
                 element.innerHTML += text.charAt(i);
                 i++;
-                setTimeout(type, speed);
+                typeWriterTimeout = setTimeout(type, speed);
             }
         }
         type();
     }
 
-    // Initial Load
     window.onload = function() { loadView('mcd', document.querySelector('.nav-btn.active')); };
 </script>
 </body>
