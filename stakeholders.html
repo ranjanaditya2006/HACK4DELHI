@@ -61,8 +61,16 @@
 
             <div class="chart-area">
               <div class="stakeholder-chart" id="stakeholder-chart"></div>
+
+              <!-- Shared tooltip for all bars -->
+              <div class="chart-tooltip" id="chart-tooltip" role="tooltip">
+                <div id="tooltip-title" class="tooltip-title"></div>
+                <div id="tooltip-value" class="tooltip-value"></div>
+                <div id="tooltip-text" class="tooltip-text"></div>
+              </div>
+
               <div class="chart-legend">
-                Higher values indicate greater coordination, cost, and turnout stress under ONOE.
+                Hover any bar to see a short explanation of why that stakeholder’s pressure rises or falls in the chosen scenario.
               </div>
             </div>
           </div>
@@ -73,32 +81,50 @@
           <div class="chart-shell">
             <div class="chart-header-text">Global comparative context</div>
             <div class="chart-subtext">
-              Selected international experiences with synchronized or consolidated elections.
+              Lessons from Sweden, South Africa, and the Philippines that informed India’s proposed hybrid ONOE model.
             </div>
 
             <div class="global-cases">
 
+              <!-- SWEDEN -->
               <div class="case-card">
-                <div class="case-title">South Africa</div>
-                <div class="case-text">
-                  National and provincial elections are synchronized, improving administrative efficiency.
-                  However, local elections remain separate, preserving subnational political competition.
+                <div class="case-title">Sweden – fully synchronized cycle</div>
+                <div class="case-text case-text-primary">
+                  Elections for the Riksdag, Regional Councils, and Municipal Councils are held together every four years
+                  on the second Sunday of September, using three colour‑coded ballots. Snap elections do not reset the
+                  four‑year clock: any mid‑term house only serves the remainder of the original term.
+                </div>
+                <div class="case-text case-text-accent">
+                  India adopts this “unexpired term” rule in its ONOE proposal so that even if a government falls early,
+                  the synchronized national–state cycle remains intact.
                 </div>
               </div>
 
+              <!-- SOUTH AFRICA -->
               <div class="case-card">
-                <div class="case-title">Sweden</div>
-                <div class="case-text">
-                  Fully synchronized elections across levels increased turnout stability, but required strong
-                  party institutionalization and high voter literacy to manage ballot complexity.
+                <div class="case-title">South Africa – national + provinces together</div>
+                <div class="case-text case-text-primary">
+                  National Assembly and all nine Provincial Legislatures vote together every five years using two ballots
+                  per voter, while municipal elections are held separately roughly mid‑term, giving local contests their
+                  own electoral space.
+                </div>
+                <div class="case-text case-text-accent">
+                  India’s two‑step plan (first align Lok Sabha and State Assemblies, then conduct municipal and panchayat
+                  polls within 100 days) sits midway between Sweden’s full integration and South Africa’s tier separation. 
                 </div>
               </div>
 
+              <!-- PHILIPPINES -->
               <div class="case-card">
-                <div class="case-title">Philippines</div>
-                <div class="case-text">
-                  Partial synchronization reduced election frequency but amplified campaign costs and elite
-                  dominance, raising concerns about unequal political access.
+                <div class="case-title">Philippines – mega synchronized elections</div>
+                <div class="case-text case-text-primary">
+                  National and most local offices are elected together every three years on a single long ballot on the
+                  second Monday of May, while the President and Vice‑President are chosen in a separate six‑year cycle.
+                  This cuts election frequency but creates very large, high‑stakes contests.
+                </div>
+                <div class="case-text case-text-accent">
+                  India deliberately avoids this “all offices, one ballot” design, keeping a five‑year national–state
+                  cycle and only time‑bound alignment of local bodies to control ballot length and cost spikes.
                 </div>
               </div>
 
@@ -107,7 +133,11 @@
         </div>
 
         <!-- Verdict -->
-        <div class="verdict-text" id="stakeholder-verdict"></div>
+        <div class="verdict-text" id="stakeholder-verdict">
+          India’s ONOE proposal is closest to a Sweden‑style fixed cycle, moderated by South Africa‑type tier staggering
+          and a conscious decision not to replicate the Philippines’ mega‑election model that would put maximum strain
+          on regional parties and lower‑capacity states.
+        </div>
 
       </section>
 
@@ -126,14 +156,15 @@
               <div class="metric-value">
                 <span id="costVal">0.90</span> × current
               </div>
-              <input type="range"
-                     min="0.85"
-                     max="1.20"
-                     step="0.05"
-                     value="0.9"
-                     id="costSlider" />
+              <input
+                type="range"
+                min="0.10"
+                max="1.50"
+                step="0.02"
+                value="0.5"
+                id="costSlider" />
               <div class="metric-caption">
-                Values above 1 imply higher-than-expected synchronization costs.
+                Values above 1 imply higher‑than‑expected hardware and logistics costs for synchronized polls.
               </div>
             </div>
 
@@ -142,14 +173,15 @@
               <div class="metric-value">
                 <span id="turnoutVal">1.00</span> × baseline
               </div>
-              <input type="range"
-                     min="0.85"
-                     max="1.40"
-                     step="0.05"
-                     value="1.0"
-                     id="turnoutSlider" />
+              <input
+                type="range"
+                min="0.25"
+                max="1.50"
+                step="0.02"
+                value="1.0"
+                id="turnoutSlider" />
               <div class="metric-caption">
-                Captures ballot complexity, voter fatigue, and information overload risk.
+                Captures ballot complexity, voter fatigue, and information overload risk in heavily synchronized cycles.
               </div>
             </div>
 

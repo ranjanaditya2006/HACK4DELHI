@@ -5,6 +5,58 @@
   <title>NIRVACHANNEX – Financial simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* Pop-up Tooltip Style (Bottom-Left) */
+    #chart-tooltip {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      pointer-events: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tooltip-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .tooltip-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .bar {
+      transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -129,12 +181,25 @@
       let totalVotersM = 0;
 
       const perCity = finCities.map(c => {
+        // Logic change: If scenario is ONOE, polls = 1. Else use city data.
+        const effectivePolls = scenario === "onoe" ? 1 : c.polls;
+        
         const avgCr  = (c.costMin + c.costMax) / 2;
-        const costCr = avgCr * c.polls * factor;
+        
+        // Calculate cost based on effective polls
+        const costCr = avgCr * effectivePolls * factor;
         const cpv    = (costCr * 1e7) / (c.voters * 1e6);
+
         totalCostCr  += costCr;
         totalVotersM += c.voters;
-        return { ...c, avgCr, costCr, cpv };
+        
+        return { 
+            ...c, 
+            avgCr, 
+            costCr, 
+            cpv, 
+            effectivePolls // Return this so we can show it in tooltip
+        };
       });
 
       const avgCostPerVoter = (totalCostCr * 1e7) / (totalVotersM * 1e6);
@@ -147,14 +212,30 @@
     const finScenarioNote = document.getElementById("fin-scenario-note");
     const tooltipElFin = document.getElementById("chart-tooltip");
 
-    function showFinTooltip(x, y, title, lines) {
-      tooltipElFin.innerHTML = `
-        <div id="chart-tooltip-title">${title}</div>
-        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
-      tooltipElFin.style.left = x + 12 + "px";
-      tooltipElFin.style.top  = y + 12 + "px";
+    function showFinTooltip(data, scenarioLabel) {
+      // Determine color based on scenario
+      const valColor = scenarioLabel.includes("ONOE") ? "#d946ef" : "#4ef2ff";
+
+      const content = `
+         <div class="tooltip-header">${data.name} · ${scenarioLabel}</div>
+         <div class="tooltip-row">
+            <span>Cost per voter:</span>
+            <span class="tooltip-val" style="color:${valColor}">₹${data.cpv.toFixed(0)}</span>
+         </div>
+         <div class="tooltip-row">
+            <span>Total cost (5 yrs):</span>
+            <span class="tooltip-val">₹${data.costCr.toFixed(1)} Cr</span>
+         </div>
+         <div class="tooltip-row">
+            <span>Polls in 5 yrs:</span>
+            <span class="tooltip-val">${data.effectivePolls}</span>
+         </div>
+      `;
+
+      tooltipElFin.innerHTML = content;
       tooltipElFin.style.display = "block";
     }
+
     function hideFinTooltip() { tooltipElFin.style.display = "none"; }
 
     function renderFinKPIs() {
@@ -212,7 +293,8 @@
     function renderFinChart() {
       finChartRoot.innerHTML = "";
       const metrics = computeFinMetrics(finScenario);
-      const other   = computeFinMetrics(finScenario === "current" ? "onoe" : "current");
+      // "Other" scenario data for comparison bar
+      const otherMetric = computeFinMetrics(finScenario === "current" ? "onoe" : "current");
 
       const height = finChartRoot.clientHeight || 160;
       const barWidth = 18;
@@ -225,50 +307,42 @@
 
       let maxCpv = 0;
       metrics.perCity.forEach((c, i) => {
-        maxCpv = Math.max(maxCpv, c.cpv, other.perCity[i].cpv);
+        maxCpv = Math.max(maxCpv, c.cpv, otherMetric.perCity[i].cpv);
       });
 
       metrics.perCity.forEach((c, idx) => {
-        const o = other.perCity[idx];
+        const o = otherMetric.perCity[idx];
         const xBase = x0 + idx * (groupWidth + gap);
+        
         const hBase  = (c.cpv / maxCpv) * (height * 0.9);
         const hOther = (o.cpv / maxCpv) * (height * 0.9);
 
-        const attachTooltip = (el, payload) => {
-          el.addEventListener("mousemove", e =>
-            showFinTooltip(e.clientX, e.clientY, payload.title, payload.lines)
-          );
-          el.addEventListener("mouseleave", hideFinTooltip);
-        };
-
+        // Bar A: The active scenario
         const barA = document.createElement("div");
         barA.className = "bar " + (finScenario === "current" ? "bar-current" : "bar-sync");
         barA.style.left = xBase + "px";
         barA.style.width = barWidth + "px";
         barA.style.height = hBase + "px";
-        attachTooltip(barA, {
-          title: c.name + " · " + (finScenario === "current" ? "Current system" : "ONOE"),
-          lines: [
-            "Cost per voter: ₹" + c.cpv.toFixed(0),
-            "Total cost (5 yrs): ₹" + c.costCr.toFixed(1) + " Cr",
-            "Polls in 5 yrs: " + c.polls
-          ]
-        });
+        
+        // Tooltip for Bar A
+        const labelA = finScenario === "current" ? "Current System" : "ONOE";
+        barA.addEventListener("mousemove", () => showFinTooltip(c, labelA));
+        barA.addEventListener("mouseleave", hideFinTooltip);
+        
         finChartRoot.appendChild(barA);
 
+        // Bar B: The alternative scenario (comparison)
         const barB = document.createElement("div");
         barB.className = "bar " + (finScenario === "current" ? "bar-sync" : "bar-current");
         barB.style.left = xBase + barWidth + 3 + "px";
         barB.style.width = barWidth + "px";
         barB.style.height = hOther + "px";
-        attachTooltip(barB, {
-          title: c.name + " · " + (finScenario === "current" ? "ONOE" : "Current system"),
-          lines: [
-            "Cost per voter: ₹" + o.cpv.toFixed(0),
-            "Total cost (5 yrs): ₹" + o.costCr.toFixed(1) + " Cr",
-            "Polls in 5 yrs: " + o.polls
-          ]
-        });
+        
+        // Tooltip for Bar B
+        const labelB = finScenario === "current" ? "ONOE" : "Current System";
+        barB.addEventListener("mousemove", () => showFinTooltip(o, labelB));
+        barB.addEventListener("mouseleave", hideFinTooltip);
+
         finChartRoot.appendChild(barB);
 
         const label = document.createElement("div");

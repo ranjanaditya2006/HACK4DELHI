@@ -5,6 +5,58 @@
   <title>NIRVACHANNEX – Governance simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* Pop-up Tooltip Style (Bottom-Left) */
+    #chart-tooltip {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      pointer-events: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tooltip-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .tooltip-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .bar {
+      transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -139,7 +191,7 @@
     <footer>© 2025 NirvachanNex – Governance Simulator</footer>
   </div>
 
-  <!-- shared tooltip like overview.html -->
+  <!-- Pop-up Tooltip Container -->
   <div id="chart-tooltip"></div>
 
   <script>
@@ -179,6 +231,7 @@
             ? polls * govParams.mccDaysPerElection
             : govParams.onoeWindowDays;
 
+        // Effective Turnout calculation based on scenario
         const effTurnout = c.turnout - c.fatigueDrop * fatigueFactor;
 
         totalMccDays += mcc;
@@ -200,13 +253,47 @@
     const govScenarioNote= document.getElementById("gov-scenario-note");
     const tooltipEl      = document.getElementById("chart-tooltip");
 
-    function showTooltip(x, y, title, lines) {
-      tooltipEl.innerHTML = `
-        <div id="chart-tooltip-title">${title}</div>
-        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
-      tooltipEl.style.left = x + 12 + "px";
-      tooltipEl.style.top  = y + 12 + "px";
-      tooltipEl.style.display = "block";
+    // NEW SHOW TOOLTIP FUNCTION
+    function showTooltip(data, type) {
+        const title = type === 'base' ? `${data.name} · Baseline` : `${data.name} · ${govScenario === 'current' ? 'Current' : 'ONOE'}`;
+        
+        let content = "";
+        
+        if (type === 'base') {
+            content = `
+             <div class="tooltip-header">${title}</div>
+             <div class="tooltip-row">
+                <span>Baseline (2019):</span>
+                <span class="tooltip-val" style="color:#94a3b8">${data.turnout.toFixed(1)} %</span>
+             </div>
+             <div class="tooltip-row">
+                <span>Registered voters:</span>
+                <span class="tooltip-val">${data.voters.toFixed(1)} M</span>
+             </div>
+            `;
+        } else {
+             // Dynamic data based on current scenario
+             const scenarioColor = govScenario === "current" ? "#4ef2ff" : "#d946ef"; // Blue for Current, Purple/Pink for ONOE logic if desired, or stick to theme
+             const activeColor = "#4ef2ff"; // Keeping cyan for effective turnout as per theme
+
+             content = `
+             <div class="tooltip-header">${title}</div>
+             <div class="tooltip-row">
+                <span>Effective turnout:</span>
+                <span class="tooltip-val" style="color:${activeColor}">${data.effTurnout.toFixed(1)} %</span>
+             </div>
+             <div class="tooltip-row">
+                <span>MCC days (city):</span>
+                <span class="tooltip-val">${data.mcc.toFixed(0)}</span>
+             </div>
+             <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+                ${govScenario === "current" ? "Impacted by voter fatigue" : "Improved by synchronized cycle"}
+             </div>
+            `;
+        }
+
+        tooltipEl.innerHTML = content;
+        tooltipEl.style.display = "block";
     }
 
     function hideTooltip() {
@@ -295,41 +382,30 @@
         const baseH = (c.turnout / maxTurn)     * (height * 0.9);
         const effH  = (c.effTurnout / maxTurn) * (height * 0.9);
 
-        const attachTooltip = (el, payload) => {
-          el.addEventListener("mousemove", e =>
-            showTooltip(e.clientX, e.clientY, payload.title, payload.lines)
-          );
-          el.addEventListener("mouseleave", hideTooltip);
-        };
-
+        // --- 1. Baseline Bar (Grey/Secondary) ---
         const barBase = document.createElement("div");
         barBase.className = "bar bar-secondary";
         barBase.style.left   = xBase + "px";
         barBase.style.width  = barWidth + "px";
         barBase.style.height = baseH + "px";
-        attachTooltip(barBase, {
-          title: c.name + " · Baseline turnout",
-          lines: [
-            "Turnout 2019: " + c.turnout.toFixed(1) + " %",
-            "Registered voters: " + c.voters.toFixed(1) + " M"
-          ]
-        });
+        // Pass 'base' type for specific tooltip
+        barBase.addEventListener("mousemove", () => showTooltip(c, 'base'));
+        barBase.addEventListener("mouseleave", hideTooltip);
         govChartRoot.appendChild(barBase);
 
+        // --- 2. Effective Turnout Bar (Colored) ---
         const barEff = document.createElement("div");
         barEff.className = "bar " + (govScenario === "current" ? "bar-current" : "bar-sync");
         barEff.style.left   = xBase + barWidth + 3 + "px";
         barEff.style.width  = barWidth + "px";
         barEff.style.height = effH + "px";
-        attachTooltip(barEff, {
-          title: c.name + " · " + (govScenario === "current" ? "Current system" : "ONOE"),
-          lines: [
-            "Effective turnout: " + c.effTurnout.toFixed(1) + " %",
-            "MCC days (city): " + c.mcc.toFixed(0)
-          ]
-        });
+        
+        // Pass 'eff' type (default) for specific tooltip with scenario data
+        barEff.addEventListener("mousemove", () => showTooltip(c, 'eff'));
+        barEff.addEventListener("mouseleave", hideTooltip);
         govChartRoot.appendChild(barEff);
 
+        // Label
         const label = document.createElement("div");
         label.className = "bar-label";
         label.style.left = xBase + groupWidth / 2 + "px";

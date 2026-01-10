@@ -5,6 +5,58 @@
   <title>NIRVACHANNEX – Administrative simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* Pop-up Tooltip Style (Bottom-Left) */
+    #chart-tooltip {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      pointer-events: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tooltip-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .tooltip-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .bar {
+      transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -140,7 +192,8 @@
 
     const adminParams = {
       fatigueReductionONOE: 0.8,
-      complaintReductionONOE: 0.85
+      complaintReductionONOE: 0.85,
+      queueReductionONOE: 0.6 // New parameter for queue efficiency
     };
 
     let adminScenario = "current";
@@ -148,16 +201,35 @@
     function computeAdminMetrics(scenario) {
       const fFactor = scenario === "current" ? 1 : adminParams.fatigueReductionONOE;
       const cFactor = scenario === "current" ? 1 : adminParams.complaintReductionONOE;
+      const qFactor = scenario === "current" ? 1 : adminParams.queueReductionONOE;
 
       let fatigueSum = 0;
       let complaintsSum = 0;
 
       const perCity = adminCities.map(c => {
-        const fatigue = c.staffFatigue * c.polls * fFactor;
+        // Dynamic Poll Count: 1 for ONOE, original for Current
+        const activePolls = scenario === "current" ? c.polls : 1;
+
+        // Dynamic Fatigue
+        const fatigue = c.staffFatigue * activePolls * fFactor;
+        
+        // Dynamic Complaints
         const complaints = c.complaints * cFactor;
+        
+        // Dynamic Queue Pressure
+        // Baseline is proportional to polls, ONOE scales it down
+        const queuePressure = (c.polls / 3) * qFactor * 100; // Normalized %
+
         fatigueSum += fatigue;
         complaintsSum += complaints;
-        return { ...c, fatigue, complaints };
+        
+        return { 
+            ...c, 
+            activePolls, // Store active poll count
+            fatigue, 
+            complaints,
+            queuePressure 
+        };
       });
 
       const avgFatigue    = fatigueSum / adminCities.length;
@@ -174,14 +246,57 @@
     const adminScenarioNote = document.getElementById("admin-scenario-note");
     const tooltipEl      = document.getElementById("chart-tooltip");
 
-    function showTooltip(x, y, title, lines) {
-      tooltipEl.innerHTML = `
-        <div id="chart-tooltip-title">${title}</div>
-        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
-      tooltipEl.style.left = x + 12 + "px";
-      tooltipEl.style.top  = y + 12 + "px";
+    function showTooltip(data, type) {
+      const scenarioLabel = adminScenario === "current" ? "Current System" : "ONOE";
+      let content = "";
+      
+      if (type === 'fatigue') {
+          content = `
+            <div class="tooltip-header">
+               ${data.name} · <span style="font-weight:400; color:#94a3b8">Staff Fatigue</span>
+            </div>
+            <div class="tooltip-row">
+                <span>Fatigue Index:</span>
+                <span class="tooltip-val" style="color:#4ef2ff">${data.fatigue.toFixed(1)}</span>
+            </div>
+            <div class="tooltip-row">
+                <span>Total Polls (5yr):</span>
+                <span class="tooltip-val">${data.activePolls}</span>
+            </div>
+          `;
+      } else if (type === 'complaints') {
+          content = `
+            <div class="tooltip-header">
+               ${data.name} · <span style="font-weight:400; color:#94a3b8">Complaints</span>
+            </div>
+            <div class="tooltip-row">
+                <span>Total Complaints:</span>
+                <span class="tooltip-val" style="color:#d946ef">${data.complaints.toLocaleString()}</span>
+            </div>
+            <div class="tooltip-row">
+                <span>Scenario:</span>
+                <span class="tooltip-val">${scenarioLabel}</span>
+            </div>
+          `;
+      } else if (type === 'queue') {
+          content = `
+            <div class="tooltip-header">
+               ${data.name} · <span style="font-weight:400; color:#94a3b8">Logistics</span>
+            </div>
+            <div class="tooltip-row">
+                <span>Queue Pressure:</span>
+                <span class="tooltip-val" style="color:#88ffea">${data.queuePressure.toFixed(0)}%</span>
+            </div>
+            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+               ${adminScenario === "current" ? "Standard load" : "Optimized resource allocation"}
+            </div>
+          `;
+      }
+
+      tooltipEl.innerHTML = content;
       tooltipEl.style.display = "block";
     }
+
     function hideTooltip() { tooltipEl.style.display = "none"; }
 
     function renderAdminKPIs() {
@@ -258,62 +373,58 @@
 
       let maxFat = 0;
       let maxComp = 0;
+      
+      // Compute max values across BOTH scenarios to keep scale consistent if desired,
+      // or just current view. For better comparison, let's use a fixed max or max of 'current' scenario
+      // to visualize the drop. Here we use the max of the current view for relative scaling in that view.
+      // But to show reduction visually, it's better to scale against a fixed maximum (e.g., max possible fatigue).
+      // For now, dynamic max based on current data is fine.
       metrics.perCity.forEach(c => {
         maxFat  = Math.max(maxFat, c.fatigue);
         maxComp = Math.max(maxComp, c.complaints);
       });
+      // Safety check to avoid divide by zero if switched to very low values
+      maxFat = maxFat || 1; 
+      maxComp = maxComp || 1;
 
       metrics.perCity.forEach((c, idx) => {
         const xBase = x0 + idx * (groupWidth + gap);
-        const fatH  = (c.fatigue    / maxFat)  * (height * 0.9);
-        const compH = (c.complaints / maxComp) * (height * 0.9);
-        const queueH = (c.polls / 3) * (height * 0.9); // simple proxy
+        
+        const fatH   = (c.fatigue    / maxFat)  * (height * 0.9);
+        const compH  = (c.complaints / maxComp) * (height * 0.9);
+        const queueH = (c.queuePressure / 100)  * (height * 0.9); // queuePressure is %
 
-        const attachTooltip = (el, payload) => {
-          el.addEventListener("mousemove", e =>
-            showTooltip(e.clientX, e.clientY, payload.title, payload.lines)
-          );
-          el.addEventListener("mouseleave", hideTooltip);
-        };
-
+        // 1. Fatigue Bar
         const barFat = document.createElement("div");
-        barFat.className = "bar bar-current";
+        barFat.className = "bar";
         barFat.style.left = xBase + "px";
         barFat.style.width = barWidth + "px";
         barFat.style.height = fatH + "px";
-        attachTooltip(barFat, {
-          title: c.name + " · Staff fatigue",
-          lines: [
-            "Composite fatigue index: " + c.fatigue.toFixed(1),
-            "Polls in 5 yrs: " + c.polls
-          ]
-        });
+        barFat.style.background = "linear-gradient(180deg, #4ef2ff 0%, #2563eb 100%)";
+        barFat.addEventListener("mousemove", () => showTooltip(c, 'fatigue'));
+        barFat.addEventListener("mouseleave", hideTooltip);
         adminChartRoot.appendChild(barFat);
 
+        // 2. Complaints Bar
         const barComp = document.createElement("div");
-        barComp.className = "bar bar-secondary";
+        barComp.className = "bar";
         barComp.style.left = xBase + barWidth + 3 + "px";
         barComp.style.width = barWidth + "px";
         barComp.style.height = compH + "px";
-        attachTooltip(barComp, {
-          title: c.name + " · Citizen complaints",
-          lines: [
-            "cVIGIL complaints (scaled): " + c.complaints.toLocaleString()
-          ]
-        });
+        barComp.style.background = "linear-gradient(180deg, #d946ef 0%, #7c3aed 100%)";
+        barComp.addEventListener("mousemove", () => showTooltip(c, 'complaints'));
+        barComp.addEventListener("mouseleave", hideTooltip);
         adminChartRoot.appendChild(barComp);
 
+        // 3. Queue/Logistics Bar
         const barQueue = document.createElement("div");
-        barQueue.className = "bar bar-sync";
+        barQueue.className = "bar";
         barQueue.style.left = xBase + barWidth * 2 + 6 + "px";
         barQueue.style.width = barWidth + "px";
         barQueue.style.height = queueH + "px";
-        attachTooltip(barQueue, {
-          title: c.name + " · Queue pressure proxy",
-          lines: [
-            "Relative queue load: " + (c.polls / 3 * 100).toFixed(0) + "%"
-          ]
-        });
+        barQueue.style.background = "linear-gradient(180deg, #88ffea 0%, #0ea5e9 100%)";
+        barQueue.addEventListener("mousemove", () => showTooltip(c, 'queue'));
+        barQueue.addEventListener("mouseleave", hideTooltip);
         adminChartRoot.appendChild(barQueue);
 
         const label = document.createElement("div");

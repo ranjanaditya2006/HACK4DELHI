@@ -5,6 +5,58 @@
   <title>NIRVACHANNEX – Constitutional simulator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* Pop-up Tooltip Style (Bottom-Left) */
+    #chart-tooltip {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      pointer-events: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tooltip-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .tooltip-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .bar {
+      transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -141,14 +193,57 @@
     const constVerdict   = document.getElementById("const-verdict");
     const tooltipElConst = document.getElementById("chart-tooltip");
 
-    function showConstTooltip(x, y, title, lines) {
-      tooltipElConst.innerHTML = `
-        <div id="chart-tooltip-title">${title}</div>
-        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>`;
-      tooltipElConst.style.left = x + 12 + "px";
-      tooltipElConst.style.top  = y + 12 + "px";
+    function showConstTooltip(data, type) {
+      let content = "";
+      
+      // Define colors based on bar type (matching the CSS classes used below)
+      let valColor = "#e2e8f0"; // default
+      if(type === 'cycle') valColor = "#d946ef"; // purple/pink
+      if(type === 'sync')  valColor = "#88ffea"; // cyan/teal
+      if(type === 'term')  valColor = "#4ef2ff"; // bright blue
+
+      if (type === 'cycle') {
+          content = `
+            <div class="tooltip-header">Out-of-Cycle Elections</div>
+            <div class="tooltip-row">
+               <span>Expected Count (20 yrs):</span>
+               <span class="tooltip-val" style="color:${valColor}">${data.val.toFixed(1)}</span>
+            </div>
+            <div class="tooltip-row">
+               <span>Impact:</span>
+               <span class="tooltip-val">Erodes single-window promise</span>
+            </div>
+          `;
+      } else if (type === 'sync') {
+          content = `
+            <div class="tooltip-header">Time Under Alignment</div>
+            <div class="tooltip-row">
+               <span>Sync Share:</span>
+               <span class="tooltip-val" style="color:${valColor}">${data.val.toFixed(1)}%</span>
+            </div>
+            <div class="tooltip-row">
+               <span>Benefit:</span>
+               <span class="tooltip-val">Preserves governance & cost savings</span>
+            </div>
+          `;
+      } else if (type === 'term') {
+          content = `
+            <div class="tooltip-header">Term Adjustment</div>
+            <div class="tooltip-row">
+               <span>Avg Adjustment:</span>
+               <span class="tooltip-val" style="color:${valColor}">${data.val.toFixed(1)} months</span>
+            </div>
+            <div class="tooltip-row">
+               <span>Risk:</span>
+               <span class="tooltip-val">Political legitimacy concerns</span>
+            </div>
+          `;
+      }
+
+      tooltipElConst.innerHTML = content;
       tooltipElConst.style.display = "block";
     }
+
     function hideConstTooltip() { tooltipElConst.style.display = "none"; }
 
     function renderConstKPIs() {
@@ -189,9 +284,9 @@
         Math.max(count - 1, 1);
 
       const items = [
-        { label: "Out‑of‑cycle", val: m.outOfCycle20y, max: 20,  cls: "bar-secondary" },
-        { label: "Sync share",   val: m.syncShare,     max: 100, cls: "bar-sync" },
-        { label: "Term adjust",  val: m.termAdjust,    max: 18,  cls: "bar-current" }
+        { label: "Out‑of‑cycle", val: m.outOfCycle20y, max: 20,  cls: "bar-secondary", type: 'cycle' },
+        { label: "Sync share",   val: m.syncShare,     max: 100, cls: "bar-sync",      type: 'sync' },
+        { label: "Term adjust",  val: m.termAdjust,    max: 18,  cls: "bar-current",   type: 'term' }
       ];
 
       items.forEach((b, idx) => {
@@ -204,32 +299,10 @@
         bar.style.width = barWidth + "px";
         bar.style.height = h + "px";
 
-        let lines;
-        if (b.label === "Out‑of‑cycle") {
-          lines = [
-            "Expected exceptional elections: " + b.val.toFixed(1) + " in 20 years",
-            "More such polls erode ONOE’s single‑window promise."
-          ];
-        } else if (b.label === "Sync share") {
-          lines = [
-            "Time with cycles aligned: " + b.val.toFixed(1) + " %",
-            "Higher values preserve governance and financial benefits."
-          ];
-        } else {
-          lines = [
-            "Average curtail/extension: " + b.val.toFixed(1) + " months",
-            "Heavier engineering may raise political legitimacy concerns."
-          ];
-        }
+        // New Event Listeners for Pop-up Tooltip
+        bar.addEventListener("mousemove", () => showConstTooltip(b, b.type));
+        bar.addEventListener("mouseleave", hideConstTooltip);
 
-        const attachTooltip = el => {
-          el.addEventListener("mousemove", e =>
-            showConstTooltip(e.clientX, e.clientY, b.label, lines)
-          );
-          el.addEventListener("mouseleave", hideConstTooltip);
-        };
-
-        attachTooltip(bar);
         constChartRoot.appendChild(bar);
 
         const label = document.createElement("div");

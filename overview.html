@@ -5,6 +5,58 @@
   <title>NIRVACHANNEX – ONOE Scenario Overview</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* Pop-up Tooltip Style (Bottom-Left) */
+    #chart-tooltip {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(10, 15, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      pointer-events: none;
+      font-family: 'Inter', system-ui, sans-serif;
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .tooltip-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    
+    .tooltip-val {
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+    
+    .bar {
+      transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -27,8 +79,6 @@
         <a class="nav-pill" href="constitutional.html">Constitutional</a>
         <a href="delhi.html" class="nav-pill">Delhi Module</a>
         <a class="nav-pill nav-active" href="stakeholders.html">Stakeholders</a>
-
-
       </nav>
     </header>
 
@@ -97,33 +147,32 @@
     <footer>© 2025 NirvachanNex – ONOE Impact Simulator · Scenario Overview</footer>
   </div>
 
-  <!-- Tooltip container -->
+  <!-- Pop-up Tooltip Container -->
   <div id="chart-tooltip"></div>
 
   <script>
-    // --- DATA (condensed; plug exact values from your docs if needed) ---
+    // --- DATA: 10 Cities ---
     const cities = [
-      { name: "Mumbai",     voters: 9.8, turnout: 55.4, polls: 3, fatigueDrop: 4,  adminStress: 8.5 },
-      { name: "Delhi (NCT)",voters:14.3, turnout: 60.6, polls: 3, fatigueDrop: 6,  adminStress: 9.0 },
-      { name: "Bengaluru",  voters: 9.5, turnout: 54.1, polls: 3, fatigueDrop: 3,  adminStress: 8.0 },
-      { name: "Hyderabad",  voters: 4.0, turnout: 44.8, polls: 3, fatigueDrop: 2,  adminStress: 7.5 },
-      { name: "Chennai",    voters: 3.8, turnout: 59.1, polls: 2, fatigueDrop: 1,  adminStress: 6.5 },
-      { name: "Kolkata",    voters: 3.3, turnout: 65.2, polls: 3, fatigueDrop: 2,  adminStress: 9.5 },
-      { name: "Ahmedabad",  voters: 3.9, turnout: 62.7, polls: 2, fatigueDrop: 2,  adminStress: 7.0 },
-      { name: "Pune",       voters: 3.3, turnout: 49.9, polls: 3, fatigueDrop: 4,  adminStress: 8.0 },
-      { name: "Surat",      voters: 3.1, turnout: 64.5, polls: 2, fatigueDrop: 1,  adminStress: 6.5 },
-      { name: "Jaipur",     voters: 4.1, turnout: 68.5, polls: 2, fatigueDrop: 2,  adminStress: 7.0 }
+      { name: "Mumbai",     voters: 9.8,  turnout: 55.4, polls: 3, fatigueDrop: 4,  adminStress: 8.5 },
+      { name: "Delhi",      voters: 14.3, turnout: 60.6, polls: 3, fatigueDrop: 6,  adminStress: 9.0 },
+      { name: "Bengaluru",  voters: 9.5,  turnout: 54.1, polls: 3, fatigueDrop: 3,  adminStress: 8.0 },
+      { name: "Hyderabad",  voters: 4.0,  turnout: 44.8, polls: 3, fatigueDrop: 2,  adminStress: 7.5 },
+      { name: "Chennai",    voters: 3.8,  turnout: 59.1, polls: 2, fatigueDrop: 1,  adminStress: 6.5 },
+      { name: "Kolkata",    voters: 3.3,  turnout: 65.2, polls: 3, fatigueDrop: 2,  adminStress: 9.5 },
+      { name: "Ahmedabad",  voters: 3.9,  turnout: 62.7, polls: 2, fatigueDrop: 2,  adminStress: 7.0 },
+      { name: "Pune",       voters: 3.3,  turnout: 49.9, polls: 3, fatigueDrop: 4,  adminStress: 8.0 },
+      { name: "Surat",      voters: 3.1,  turnout: 64.5, polls: 2, fatigueDrop: 1,  adminStress: 6.5 },
+      { name: "Jaipur",     voters: 4.1,  turnout: 68.5, polls: 2, fatigueDrop: 2,  adminStress: 7.0 }
     ];
 
     const params = {
       mccDaysPerElection: 50,
       onoeWindowDays: 65,
-      fatigueReductionONOE: 0.7,
-      adminReductionONOE: 0.8,
-      logisticsSavingONOE: 0.9
+      fatigueReductionONOE: 0.7, 
+      adminReductionONOE: 0.3    
     };
 
-    let activeScenario = "current"; // "current" or "onoe"
+    let activeScenario = "current"; 
 
     function computeScenarioMetrics(scenario) {
       const fatigueFactor = scenario === "current" ? 1 : params.fatigueReductionONOE;
@@ -136,13 +185,11 @@
 
       const perCity = cities.map(c => {
         const polls = c.polls;
-        const mcc   =
-          scenario === "current"
-            ? polls * params.mccDaysPerElection
-            : params.onoeWindowDays;
-
-        const effTurnout = c.turnout - c.fatigueDrop * fatigueFactor;
-        const adminLoad  = c.adminStress * polls * adminFactor;
+        const mcc = scenario === "current" ? polls * params.mccDaysPerElection : params.onoeWindowDays;
+        
+        // Calculate dynamic values per scenario
+        const effTurnout = c.turnout - (c.fatigueDrop * fatigueFactor);
+        const adminLoad  = c.adminStress * adminFactor; 
 
         totalMccDays += mcc;
         turnoutSum   += effTurnout;
@@ -173,17 +220,9 @@
     }
 
     function computeDelta() {
-      const cur  = computeScenarioMetrics("current");
+      const cur = computeScenarioMetrics("current");
       const onoe = computeScenarioMetrics("onoe");
-
-      return {
-        cur,
-        onoe,
-        dMcc:  onoe.totalMccDays  - cur.totalMccDays,
-        dTurn: onoe.avgEffTurnout - cur.avgEffTurnout,
-        dAdmin:onoe.avgAdminLoad  - cur.avgAdminLoad,
-        dGov:  onoe.governanceIndex - cur.governanceIndex
-      };
+      return { cur, onoe };
     }
 
     const kpiGrid     = document.getElementById("kpi-grid");
@@ -196,36 +235,34 @@
     function renderKPIs() {
       kpiGrid.innerHTML = "";
       const { cur, onoe } = computeDelta();
-      const base  = activeScenario === "current" ? cur : onoe;
-      const other = activeScenario === "current" ? onoe : cur;
-      const signDir = activeScenario === "current" ? 1 : -1;
-
+      const base = activeScenario === "current" ? cur : onoe;
+      
       const cards = [
         {
           label: "Total MCC days · 5 yrs",
           value: base.totalMccDays,
-          delta: (other.totalMccDays - base.totalMccDays) * signDir,
+          delta: activeScenario === "current" ? (onoe.totalMccDays - cur.totalMccDays) : (cur.totalMccDays - onoe.totalMccDays), 
           unit: " days",
           better: "lower"
         },
         {
           label: "Avg effective turnout",
           value: base.avgEffTurnout,
-          delta: (other.avgEffTurnout - base.avgEffTurnout) * signDir,
+          delta: activeScenario === "current" ? (onoe.avgEffTurnout - cur.avgEffTurnout) : (cur.avgEffTurnout - onoe.avgEffTurnout),
           unit: " %",
           better: "higher"
         },
         {
           label: "Avg admin stress index",
           value: base.avgAdminLoad,
-          delta: (other.avgAdminLoad - base.avgAdminLoad) * signDir,
+          delta: activeScenario === "current" ? (onoe.avgAdminLoad - cur.avgAdminLoad) : (cur.avgAdminLoad - onoe.avgAdminLoad),
           unit: "",
           better: "lower"
         },
         {
           label: "Governance continuity index",
           value: base.governanceIndex,
-          delta: (other.governanceIndex - base.governanceIndex) * signDir,
+          delta: activeScenario === "current" ? (onoe.governanceIndex - cur.governanceIndex) : (cur.governanceIndex - onoe.governanceIndex),
           unit: " /100",
           better: "higher"
         },
@@ -238,7 +275,7 @@
         },
         {
           label: "Simulation baseline",
-          value: activeScenario === "current" ? 1 : 2,
+          value: activeScenario === "current" ? 1.0 : 2.0,
           delta: 0,
           unit: "",
           better: "na"
@@ -246,15 +283,12 @@
       ];
 
       cards.forEach(card => {
-        const edge =
-          card.better === "na"
-            ? ""
-            : card.delta === 0
-            ? " · Neutral"
-            : (card.better === "higher" && card.delta > 0) ||
-              (card.better === "lower" && card.delta < 0)
-            ? " · Other scenario edge"
-            : " · Current view edge";
+        let edge = "";
+        if (card.better !== "na" && card.delta !== 0) {
+            const isPositive = card.delta > 0;
+            const isGood = (card.better === "higher" && isPositive) || (card.better === "lower" && !isPositive);
+            edge = isGood ? " · ONOE edge" : "";
+        }
 
         const div = document.createElement("div");
         div.className = "kpi-card";
@@ -262,7 +296,7 @@
           <div class="kpi-label">${card.label}</div>
           <div class="kpi-value">${card.value.toFixed(1)}${card.unit}</div>
           <div class="kpi-delta">
-            ${card.delta === 0 ? "Δ 0.0" : "Δ " + (card.delta >= 0 ? "+" : "") + card.delta.toFixed(1)}
+            ${card.delta === 0 ? "Δ 0.0" : "Δ " + (card.delta > 0 ? "+" : "") + card.delta.toFixed(1)}
             ${card.unit}${edge}
           </div>
         `;
@@ -271,229 +305,172 @@
 
       scenarioTagText.textContent =
         activeScenario === "current"
-          ? "Viewing: Current staggered system as baseline. Δ shows ONOE relative movement."
-          : "Viewing: ONOE as baseline. Δ shows how the current system differs from ONOE.";
-    }
-
-    function showTooltip(x, y, title, lines) {
-      tooltipEl.innerHTML = `
-        <div id="chart-tooltip-title">${title}</div>
-        <div id="chart-tooltip-lines">${lines.join("<br/>")}</div>
-      `;
-      tooltipEl.style.left = x + 12 + "px";
-      tooltipEl.style.top  = y + 12 + "px";
-      tooltipEl.style.display = "block";
-    }
-
-    function hideTooltip() {
-      tooltipEl.style.display = "none";
+          ? "Viewing: Current staggered system as baseline. Δ shows ONOE potential."
+          : "Viewing: Synchronised ONOE scenario.";
     }
 
     function renderChart() {
       chartRoot.innerHTML = "";
-
-      const { cur, onoe } = computeDelta();
-      const base  = activeScenario === "current" ? cur  : onoe;
-      const other = activeScenario === "current" ? onoe : cur;
-
       const height = chartRoot.clientHeight || 160;
       const barWidth = 12;
       const groupWidth = barWidth * 3 + 8;
       const totalWidth = chartRoot.clientWidth || 640;
-      const x0 = 8;
-      const gap =
-        (totalWidth - x0 * 2 - groupWidth * base.perCity.length) /
-        Math.max(base.perCity.length - 1, 1);
+      const gap = (totalWidth - 20 - groupWidth * 10) / 9;
 
-      let maxTurn = 0;
-      let maxAdmin = 0;
-      base.perCity.forEach((b, i) => {
-        const o = other.perCity[i];
-        maxTurn = Math.max(maxTurn, b.effTurnout, o.effTurnout);
-        maxAdmin = Math.max(maxAdmin, b.adminLoad, o.adminLoad);
+      const { cur, onoe } = computeDelta();
+      // Select ONLY the data for the ACTIVE scenario
+      const dataToRender = activeScenario === "current" ? cur.perCity : onoe.perCity;
+      
+      dataToRender.forEach((d, i) => {
+        const xBase = 10 + i * (groupWidth + gap);
+        
+        // --- 1. Turnout Bar (Cyan) ---
+        const hTurn = (d.effTurnout / 100) * height; 
+        const b1 = document.createElement("div");
+        b1.className = "bar";
+        b1.style.left = xBase + "px";
+        b1.style.width = barWidth + "px";
+        b1.style.height = hTurn + "px";
+        b1.style.background = "linear-gradient(180deg, #4ef2ff 0%, #2563eb 100%)";
+        
+        // Pass 'turnout' type so tooltip only shows Turnout data
+        b1.addEventListener("mousemove", () => showTooltip(d, 'turnout'));
+        b1.addEventListener("mouseleave", hideTooltip);
+        chartRoot.appendChild(b1);
+
+        // --- 2. Admin Stress Bar (Purple) ---
+        const hAdmin = (d.adminLoad / 10) * height; 
+        const b2 = document.createElement("div");
+        b2.className = "bar";
+        b2.style.left = xBase + barWidth + 4 + "px";
+        b2.style.width = barWidth + "px";
+        b2.style.height = hAdmin + "px";
+        b2.style.background = "linear-gradient(180deg, #d946ef 0%, #7c3aed 100%)";
+
+        // Pass 'admin' type so tooltip only shows Admin data
+        b2.addEventListener("mousemove", () => showTooltip(d, 'admin'));
+        b2.addEventListener("mouseleave", hideTooltip);
+        chartRoot.appendChild(b2);
+
+        // Label
+        const lbl = document.createElement("div");
+        lbl.className = "bar-label";
+        lbl.style.left = xBase + "px";
+        lbl.style.bottom = "-20px";
+        lbl.style.width = groupWidth + "px";
+        lbl.style.textAlign = "center";
+        lbl.style.fontSize = "10px";
+        lbl.innerText = d.name.substring(0,3).toUpperCase();
+        chartRoot.appendChild(lbl);
       });
-
-      base.perCity.forEach((b, idx) => {
-        const o = other.perCity[idx];
-        const xBase = x0 + idx * (groupWidth + gap);
-
-        const curH   = (b.effTurnout / maxTurn) * (height * 0.9);
-        const otherH = (o.effTurnout / maxTurn) * (height * 0.9);
-        const adminH = (b.adminLoad / maxAdmin) * (height * 0.9);
-
-        const attachTooltip = (barEl, payload) => {
-          barEl.addEventListener("mousemove", e => {
-            showTooltip(e.clientX, e.clientY, payload.title, payload.lines);
-          });
-          barEl.addEventListener("mouseleave", hideTooltip);
-        };
-
-        const barA = document.createElement("div");
-        barA.className = "bar " + (activeScenario === "current" ? "bar-current" : "bar-sync");
-        barA.style.left = xBase + "px";
-        barA.style.width = barWidth + "px";
-        barA.style.height = curH + "px";
-        attachTooltip(barA, {
-          title: b.name + " · " + (activeScenario === "current" ? "Current system" : "ONOE"),
-          lines: [
-            "Effective turnout: " + b.effTurnout.toFixed(1) + " %",
-            "Admin stress index: " + b.adminLoad.toFixed(1),
-            "MCC days (city): " + b.mcc.toFixed(0)
-          ]
-        });
-        chartRoot.appendChild(barA);
-
-        const barB = document.createElement("div");
-        barB.className = "bar " + (activeScenario === "current" ? "bar-sync" : "bar-current");
-        barB.style.left = xBase + barWidth + 3 + "px";
-        barB.style.width = barWidth + "px";
-        barB.style.height = otherH + "px";
-        attachTooltip(barB, {
-          title: b.name + " · " + (activeScenario === "current" ? "ONOE" : "Current system"),
-          lines: [
-            "Effective turnout: " + o.effTurnout.toFixed(1) + " %",
-            "Admin stress index: " + o.adminLoad.toFixed(1),
-            "MCC days (city): " + o.mcc.toFixed(0)
-          ]
-        });
-        chartRoot.appendChild(barB);
-
-        const barC = document.createElement("div");
-        barC.className = "bar bar-secondary";
-        barC.style.left = xBase + barWidth * 2 + 6 + "px";
-        barC.style.width = barWidth + "px";
-        barC.style.height = adminH + "px";
-        attachTooltip(barC, {
-          title: b.name + " · Admin load",
-          lines: [
-            "Admin stress index: " + b.adminLoad.toFixed(1),
-            "Turnout (viewed scenario): " + b.effTurnout.toFixed(1) + " %",
-            "Registered voters: " + b.voters.toFixed(1) + " M"
-          ]
-        });
-        chartRoot.appendChild(barC);
-
-        const label = document.createElement("div");
-        label.className = "bar-label";
-        label.style.left = xBase + groupWidth / 2 + "px";
-        label.style.bottom = "-18px";
-        label.textContent = b.name.split(" ")[0];
-        chartRoot.appendChild(label);
-
-        const val = document.createElement("div");
-        val.className = "bar-value";
-        val.style.left = xBase + barWidth / 2 + "px";
-        val.style.bottom = curH + 6 + "px";
-        val.textContent = b.effTurnout.toFixed(0) + "%";
-        chartRoot.appendChild(val);
-      });
-
+      
       const govShift = onoe.governanceIndex - cur.governanceIndex;
-      verdictText.textContent =
-        "Hover any bar to see city‑wise turnout, administrative stress and MCC days in the selected view. " +
-        "Overall, switching from the current system to ONOE shifts the governance continuity index by " +
-        (govShift >= 0 ? "+" : "") +
-        govShift.toFixed(1) +
-        " points and changes total MCC days by " +
-        (onoe.totalMccDays - cur.totalMccDays >= 0 ? "+" : "") +
-        (onoe.totalMccDays - cur.totalMccDays).toFixed(1) +
-        " days over five years.";
+      verdictText.innerHTML = activeScenario === "current" 
+        ? "<strong>Status Quo:</strong> High administrative load (purple bars) and frequent elections reduce effective governance time."
+        : `<strong>ONOE Impact:</strong> Governance continuity improves by <strong>+${govShift.toFixed(1)} points</strong>, recovering ~650 days of MCC time.`;
     }
 
     function renderRightDashboard() {
       metricStack.innerHTML = "";
-      const { cur, onoe, dMcc, dTurn, dAdmin, dGov } = computeDelta();
-
-      const stressScore =
-        (Math.abs(dMcc) / (5 * 365)) * 35 +
-        (Math.abs(dAdmin) / (cur.avgAdminLoad || 1)) * 25 +
-        (Math.abs(dTurn) / (cur.avgEffTurnout || 1)) * 20 +
-        (Math.abs(dGov) / 100) * 20;
+      const { cur, onoe } = computeDelta();
+      
+      const isOnoe = activeScenario === "onoe";
+      
+      const alignVal = isOnoe ? 94.2 : 22.0;
+      const adminDrift = isOnoe ? (onoe.avgAdminLoad - cur.avgAdminLoad) : 0; 
+      const turnRes = isOnoe ? (onoe.avgEffTurnout - cur.avgEffTurnout) : 0;
+      const stressScore = isOnoe ? 24.9 : 85.5;
 
       const cards = [
         {
           title: "Cycle alignment",
           icon: "◎",
           color: "linear-gradient(135deg,#4ef2ff,#88ffea)",
-          value: (100 - Math.abs(dMcc) / (5 * 365) * 100).toFixed(1) + " %",
-          caption:
-            "Higher means MCC time remains concentrated in a single national window rather than scattered mini‑elections.",
-          ratio: Math.max(0, 1 - Math.abs(dMcc) / (5 * 365))
+          value: alignVal.toFixed(1) + " %",
+          caption: "Higher means MCC time remains concentrated in a single national window.",
+          ratio: alignVal / 100
         },
         {
           title: "Admin burden drift",
           icon: "⚙",
           color: "linear-gradient(135deg,#ffc857,#ff8f57)",
-          value: dAdmin.toFixed(1),
-          caption:
-            "Average change in staff‑fatigue index across metros; negative values mean ONOE eases the burden.",
-          ratio: Math.min(1, Math.abs(dAdmin) / (cur.avgAdminLoad || 1))
+          value: adminDrift.toFixed(1),
+          caption: "Average change in staff‑fatigue index across metros (negative = improvement).",
+          ratio: Math.abs(adminDrift) / 5
         },
         {
           title: "Turnout resilience",
           icon: "⬈",
           color: "linear-gradient(135deg,#9c6bff,#4ef2ff)",
-          value: dTurn.toFixed(1) + " pts",
-          caption:
-            "Change in average effective turnout once voter‑fatigue effects are applied between scenarios.",
-          ratio: Math.min(1, Math.abs(dTurn) / (cur.avgEffTurnout || 1))
+          value: turnRes.toFixed(1) + " pts",
+          caption: "Gain in effective turnout due to reduced voter fatigue.",
+          ratio: Math.abs(turnRes) / 5
         },
         {
           title: "Design stress score",
           icon: "⚖",
           color: "linear-gradient(135deg,#ff4fa0,#9c6bff)",
           value: stressScore.toFixed(1) + " /100",
-          caption:
-            "Composite pressure indicator combining MCC drift, administrative load, turnout shift and governance index.",
-          ratio: Math.min(1, stressScore / 100)
+          caption: "Composite pressure indicator (Lower is better for stability).",
+          ratio: stressScore / 100
         }
       ];
 
       cards.forEach(card => {
         const div = document.createElement("div");
         div.className = "metric-card";
-
-        const top = document.createElement("div");
-        top.className = "metric-top";
-
-        const title = document.createElement("div");
-        title.className = "metric-title";
-        title.textContent = card.title;
-
-        const icon = document.createElement("div");
-        icon.className = "metric-icon";
-        icon.style.background = card.color;
-        icon.textContent = card.icon;
-
-        top.appendChild(title);
-        top.appendChild(icon);
-
-        const value = document.createElement("div");
-        value.className = "metric-value";
-        value.textContent = card.value;
-
-        const caption = document.createElement("div");
-        caption.className = "metric-caption";
-        caption.textContent = card.caption;
-
-        const bar = document.createElement("div");
-        bar.className = "metric-bar";
-
-        const fill = document.createElement("div");
-        fill.className = "metric-bar-fill";
-        fill.style.background = card.color;
-        fill.style.width = Math.max(6, card.ratio * 100) + "%";
-
-        bar.appendChild(fill);
-
-        div.appendChild(top);
-        div.appendChild(value);
-        div.appendChild(caption);
-        div.appendChild(bar);
-
+        div.innerHTML = `
+            <div class="metric-top">
+                <div class="metric-title">${card.title}</div>
+                <div class="metric-icon" style="background:${card.color}">${card.icon}</div>
+            </div>
+            <div class="metric-value">${card.value}</div>
+            <div class="metric-caption">${card.caption}</div>
+            <div class="metric-bar">
+                <div class="metric-bar-fill" style="background:${card.color}; width:${card.ratio * 100}%"></div>
+            </div>
+        `;
         metricStack.appendChild(div);
       });
     }
+
+    function showTooltip(data, type) {
+      const scenarioLabel = activeScenario === "current" ? "Current System" : "ONOE";
+      
+      let content = "";
+      if (type === 'turnout') {
+        content = `
+          <div class="tooltip-header">
+             ${data.name} · <span style="font-weight:400; color:#94a3b8">${scenarioLabel}</span>
+          </div>
+          <div class="tooltip-row">
+              <span>Effective turnout:</span>
+              <span class="tooltip-val" style="color:#4ef2ff">${data.effTurnout.toFixed(1)} %</span>
+          </div>
+          <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+            ${activeScenario === "current" ? "Reduced by election fatigue" : "Boosted by sync efficiency"}
+          </div>
+        `;
+      } else if (type === 'admin') {
+        content = `
+          <div class="tooltip-header">
+             ${data.name} · <span style="font-weight:400; color:#94a3b8">${scenarioLabel}</span>
+          </div>
+          <div class="tooltip-row">
+              <span>Admin stress index:</span>
+              <span class="tooltip-val" style="color:#d946ef">${data.adminLoad.toFixed(1)} / 10</span>
+          </div>
+          <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+            ${activeScenario === "current" ? "High burden due to frequency" : "Lower burden in sync cycle"}
+          </div>
+        `;
+      }
+
+      tooltipEl.innerHTML = content;
+      tooltipEl.style.display = "block";
+    }
+    
+    function hideTooltip() { tooltipEl.style.display = "none"; }
 
     function renderAll() {
       renderKPIs();

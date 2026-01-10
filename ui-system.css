@@ -2,25 +2,42 @@
   /* Core palette */
   --bg-body: #020515;
   --bg-gradient: radial-gradient(circle at top, #151d3b 0%, #020515 50%, #01010a 100%);
+
   --glass-bg: rgba(15, 24, 54, 0.72);
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-bg-soft: rgba(11, 18, 40, 0.58);
   --glass-highlight: rgba(101, 255, 233, 0.36);
+
   --accent-cyan: #4ef2ff;
   --accent-purple: #9c6bff;
   --accent-magenta: #ff4fa0;
   --accent-amber: #ffc857;
+
   --text-main: #f5f7ff;
   --text-muted: rgba(230, 235, 255, 0.78);
+
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-pill: 999px;
+
   --shadow-soft: 0 22px 50px rgba(0, 0, 0, 0.75);
   --shadow-subtle: 0 10px 24px rgba(0, 0, 0, 0.6);
+
+  /* Nav specific */
+  --nav-shell-bg: rgba(6, 10, 30, 0.72);
+  --nav-shell-border: rgba(255, 255, 255, 0.12);
+  --nav-pill-bg: rgba(255, 255, 255, 0.06);
+  --nav-pill-border: rgba(255, 255, 255, 0.10);
+  --nav-pill-hover-bg: rgba(255, 255, 255, 0.10);
+  --nav-pill-hover-border: rgba(255, 255, 255, 0.18);
+
+  --nav-active-bg: linear-gradient(135deg, rgba(78, 242, 255, 0.95), rgba(156, 107, 255, 0.95));
+  --nav-active-text: #050816;
+  --nav-active-border: rgba(78, 242, 255, 0.45);
+  --nav-active-shadow: 0 12px 26px rgba(0, 0, 0, 0.55);
 }
 
 /* Reset */
-
 *,
 *::before,
 *::after {
@@ -35,28 +52,39 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   background: var(--bg-gradient);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* Layout shell */
-
 .app-shell {
   max-width: 1320px;
   margin: 0 auto;
   padding: 20px 20px 30px;
+  overflow: visible;
 }
 
 /* Header */
-
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   margin-bottom: 18px;
+  padding: 12px 14px;
+
+  border-radius: 16px;
+  background: rgba(6, 10, 30, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55);
 }
 
 .brand-block {
@@ -87,50 +115,111 @@ body {
   font-size: 0.98rem;
   font-weight: 600;
   letter-spacing: 0.04em;
+  color: var(--text-main);
 }
 
 .brand-text-sub {
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: rgba(230, 235, 255, 0.7);
   letter-spacing: 0.14em;
 }
 
-/* Navigation */
+/* =========================================================
+   NAV TABS (NEW - matches screenshot 2 pill tabs)
+   ========================================================= */
 
+/* Outer segmented shell like your scenario toggle */
 .app-nav {
-  display: flex;
-  gap: 8px;
-  font-size: 0.8rem;
-}
-
-.nav-pill {
-  border-radius: var(--radius-pill);
-  padding: 7px 14px;
-  border: 1px solid transparent;
-  background: linear-gradient(135deg, rgba(99, 115, 255, 0.05), rgba(0, 0, 0, 0.75));
-  color: var(--text-muted);
-  text-decoration: none;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease,
-    transform 0.12s ease;
+
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--nav-shell-border);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(78, 242, 255, 0.14), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(156, 107, 255, 0.16), transparent 55%),
+    var(--nav-shell-bg);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
+
+  position: relative;
+  z-index: 1001;
+}
+
+/* Each tab */
+.nav-pill {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  cursor: pointer;
+
+  color: rgba(230, 235, 255, 0.80);
+  background: var(--nav-pill-bg);
+  border: 1px solid var(--nav-pill-border);
+
+  transition:
+    transform 0.12s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .nav-pill:hover {
-  border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
+  background: var(--nav-pill-hover-bg);
+  border-color: var(--nav-pill-hover-border);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
 
+/* Active tab: pill highlight like screenshot 2 */
 .nav-pill.nav-active {
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-  color: #050816;
-  font-weight: 600;
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  border-color: var(--nav-active-border);
+  box-shadow: var(--nav-active-shadow);
+  transform: translateY(-0.5px);
+}
+
+/* Optional: focus visibility for keyboard */
+.nav-pill:focus-visible {
+  outline: 2px solid rgba(78, 242, 255, 0.55);
+  outline-offset: 2px;
+}
+
+/* If you have icons inside tabs */
+.nav-pill svg,
+.nav-pill i {
+  font-size: 0.92em;
+}
+
+/* Ensure overlay components don't cover navbar */
+.sim-overlay {
+  z-index: 2000;
+}
+
+/* Fix pages that use full-height grids */
+.delhi-layout,
+.overview-grid {
+  position: relative;
+  z-index: 1;
 }
 
 /* Glass panels */
-
 .glass-panel {
   position: relative;
   border-radius: var(--radius-lg);
@@ -160,18 +249,17 @@ body {
 }
 
 /* Subtle glow accents */
-
 .panel-glow {
   position: absolute;
   inset: -40%;
-  background: radial-gradient(circle at 0% 0%, rgba(78, 242, 255, 0.18), transparent 55%),
+  background:
+    radial-gradient(circle at 0% 0%, rgba(78, 242, 255, 0.18), transparent 55%),
     radial-gradient(circle at 100% 100%, rgba(156, 107, 255, 0.22), transparent 55%);
   opacity: 0.75;
   pointer-events: none;
 }
 
 /* Panel header */
-
 .panel-header {
   position: relative;
   display: flex;
@@ -205,7 +293,6 @@ body {
 }
 
 /* Overview layout */
-
 .overview-grid {
   display: grid;
   grid-template-columns: 1.9fr 1.4fr;
@@ -219,7 +306,6 @@ body {
 }
 
 /* Scenario selector & tags */
-
 .scenario-strip {
   display: flex;
   justify-content: space-between;
@@ -233,7 +319,8 @@ body {
   border-radius: var(--radius-pill);
   padding: 3px;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background: radial-gradient(circle at 0% 0%, rgba(78, 242, 255, 0.16), transparent 42%),
+  background:
+    radial-gradient(circle at 0% 0%, rgba(78, 242, 255, 0.16), transparent 42%),
     rgba(5, 8, 22, 0.9);
 }
 
@@ -261,7 +348,6 @@ body {
 }
 
 /* KPI grid */
-
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -284,7 +370,8 @@ body {
 .kpi-card {
   border-radius: var(--radius-md);
   padding: 9px 10px 10px;
-  background: radial-gradient(circle at 0 0, rgba(78, 242, 255, 0.2), transparent 55%),
+  background:
+    radial-gradient(circle at 0 0, rgba(78, 242, 255, 0.2), transparent 55%),
     rgba(5, 10, 30, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.76rem;
@@ -308,7 +395,6 @@ body {
 }
 
 /* Chart */
-
 .chart-section {
   padding: 6px 18px 16px;
 }
@@ -317,7 +403,8 @@ body {
   position: relative;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background: radial-gradient(circle at 0 0, rgba(156, 107, 255, 0.2), transparent 55%),
+  background:
+    radial-gradient(circle at 0 0, rgba(156, 107, 255, 0.2), transparent 55%),
     rgba(4, 8, 26, 0.9);
   box-shadow: var(--shadow-subtle);
   padding: 9px 10px 12px;
@@ -394,7 +481,6 @@ body {
 }
 
 /* Tooltip */
-
 #chart-tooltip {
   min-width: 160px;
   max-width: 260px;
@@ -422,7 +508,6 @@ body {
 }
 
 /* Verdict text */
-
 .verdict-text {
   padding: 6px 18px 14px;
   font-size: 0.76rem;
@@ -430,7 +515,6 @@ body {
 }
 
 /* Right side: scenario cards */
-
 .right-panel-inner {
   padding: 14px 16px 16px;
 }
@@ -450,7 +534,8 @@ body {
 .metric-card {
   border-radius: var(--radius-md);
   padding: 9px 10px 10px;
-  background: radial-gradient(circle at 100% 0, rgba(156, 107, 255, 0.22), transparent 55%),
+  background:
+    radial-gradient(circle at 100% 0, rgba(156, 107, 255, 0.22), transparent 55%),
     rgba(6, 10, 30, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: var(--shadow-subtle);
@@ -504,220 +589,7 @@ body {
   border-radius: 999px;
 }
 
-/* Footer */
-
-footer {
-  margin-top: 18px;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-align: right;
-  opacity: 0.8;
-}
-/* =========================================================
-   NAVBAR VISIBILITY & STACKING FIX
-   ========================================================= */
-
-/* Ensure header is always visible */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: #f4f6f9;
-}
-
-/* Prevent layouts from hiding header */
-body {
-  overflow-x: hidden;
-}
-
-/* Fix pages that use full-height grids (Delhi module etc.) */
-.delhi-layout,
-.overview-grid {
-  position: relative;
-  z-index: 1;
-}
-
-/* Ensure nav pills are clickable */
-.app-nav {
-  position: relative;
-  z-index: 1001;
-}
-
-/* Fix overlay components accidentally covering navbar */
-.sim-overlay {
-  z-index: 2000;
-}
-
-/* Prevent accidental clipping */
-.app-shell {
-  overflow: visible;
-}
-/* =========================================================
-   OFFICIAL NAVIGATION BAR (FIXED LOOK)
-   ========================================================= */
-
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: #f4f6f9;
-  border-bottom: 1px solid var(--border-light);
-}
-
-/* Nav container */
-.app-nav {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-/* Nav items */
-.nav-pill {
-  padding: 6px 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-
-  border-radius: 4px;
-  border: 1px solid transparent;
-  background: transparent;
-
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-/* Hover state (subtle, official) */
-.nav-pill:hover {
-  background: #eef2f7;
-  border-color: var(--border-light);
-  color: var(--text-primary);
-}
-
-/* Active tab */
-.nav-pill.nav-active {
-  background: #ffffff;
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-
-/* Prevent rounded mobile-button look */
-.nav-pill,
-.nav-pill.nav-active {
-  box-shadow: none;
-}
-/* =========================================================
-   COLOR OVERRIDES FOR READABLE, OFFICIAL NAVBAR
-   ========================================================= */
-
-/* Force light header context */
-.app-header {
-  background: #f8fafc;
-}
-
-/* Override nav text colors explicitly */
-.app-header .brand-text-main {
-  color: #1e293b; /* slate-800 */
-}
-
-.app-header .brand-text-sub {
-  color: #475569; /* slate-600 */
-}
-
-/* Nav items – visible on light background */
-.app-header .nav-pill {
-  color: #334155; /* slate-700 */
-}
-
-/* Hover */
-.app-header .nav-pill:hover {
-  background: #e5e7eb; /* gray-200 */
-  color: #0f172a;      /* slate-900 */
-}
-
-/* Active tab – high contrast, official */
-.app-header .nav-pill.nav-active {
-  background: #ffffff;
-  border-color: #1e40af; /* deep blue */
-  color: #1e40af;
-  font-weight: 600;
-}
-/* =========================================================
-   NAVBAR – DARK GLASS, CONSISTENT WITH APP THEME
-   ========================================================= */
-
-/* Header container */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-
-  background: rgba(6, 10, 30, 0.92); /* matches panels */
-  backdrop-filter: blur(14px);
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-/* Brand text */
-.app-header .brand-text-main {
-  color: #f5f7ff; /* same as main text */
-}
-
-.app-header .brand-text-sub {
-  color: rgba(230, 235, 255, 0.7);
-}
-
-/* Nav container */
-.app-header .app-nav {
-  display: flex;
-  gap: 6px;
-}
-
-/* Nav items – subdued by default */
-.app-header .nav-pill {
-  padding: 6px 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-
-  color: rgba(230, 235, 255, 0.75);
-  background: rgba(255, 255, 255, 0.04);
-
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-/* Hover – subtle lift, no glow */
-.app-header .nav-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-/* Active tab – authoritative, not flashy */
-.app-header .nav-pill.nav-active {
-  background: rgba(78, 242, 255, 0.18); /* muted cyan */
-  color: #f5f7ff;
-  border-color: rgba(78, 242, 255, 0.45);
-  font-weight: 600;
-}
-
-/* Remove unwanted shadows from old styles */
-.app-header .nav-pill,
-.app-header .nav-pill.nav-active {
-  box-shadow: none;
-}
-/* =========================================================
-   STAKEHOLDER BAR CHART (POLICY STYLE)
-   ========================================================= */
-
+/* Stakeholder bar chart (Policy style) */
 .stakeholder-chart {
   display: flex;
   flex-direction: column;
@@ -764,10 +636,8 @@ body {
   font-size: 0.65rem;
   color: var(--text-muted);
 }
-/* =========================================================
-   GLOBAL CASE STUDIES – POLICY CONTEXT
-   ========================================================= */
 
+/* Global case studies */
 .global-cases {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -793,4 +663,13 @@ body {
   font-size: 0.7rem;
   color: var(--text-muted);
   line-height: 1.35;
+}
+
+/* Footer */
+footer {
+  margin-top: 18px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+  opacity: 0.8;
 }
