@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NIRVACHANNEX – Hung Assembly Contract Engine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="ui-system.css" />
+  <style>
+    /* ===== Layout ===== */
+    .ha-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 14px 22px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .ha-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .ha-left,
+    .ha-right {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    /* ===== Typography ===== */
+    .ha-title {
+      font-size: 1rem;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .ha-subtitle {
+      font-size: 0.8rem;
+      color: rgba(192, 206, 255, 0.8);
+      line-height: 1.35;
+    }
+
+    .ha-card {
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: rgba(23, 18, 52, 0.82);
+      border: 1px solid rgba(120, 129, 255, 0.35);
+      box-shadow: 0 6px 20px rgba(4, 10, 38, 0.55);
+      font-size: 0.78rem;
+      color: rgba(222, 231, 255, 0.9);
+    }
+    .ha-card-title {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #c7caff;
+      margin-bottom: 3px;
+    }
+
+    .ha-input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 6px;
+    }
+    .ha-input-label {
+      font-size: 0.76rem;
+      color: rgba(195, 208, 255, 0.9);
+    }
+    .ha-input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(132, 145, 255, 0.6);
+      background: rgba(12, 17, 50, 0.96);
+      color: #f5f7ff;
+      font-size: 0.78rem;
+      box-sizing: border-box;
+    }
+    .ha-input:focus {
+      outline: none;
+      border-color: #6fffe9;
+      box-shadow: 0 0 0 1px rgba(111, 255, 233, 0.6);
+    }
+
+    /* ===== Toggles ===== */
+    .ha-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 8px;
+      border-radius: 10px;
+      background: rgba(16, 18, 50, 0.92);
+      border: 1px solid rgba(108, 124, 255, 0.4);
+      margin-top: 5px;
+      gap: 8px;
+    }
+    .ha-toggle-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .ha-toggle-label {
+      font-size: 0.78rem;
+      color: rgba(244, 248, 255, 0.95);
+      margin-bottom: 1px;
+    }
+    .ha-toggle-sub {
+      font-size: 0.72rem;
+      color: rgba(192, 206, 255, 0.78);
+      line-height: 1.3;
+    }
+
+    .ha-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .ha-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .ha-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: linear-gradient(135deg, #271c5a, #1a233a);
+      border-radius: 34px;
+      box-shadow: 0 0 0 1px rgba(120, 129, 255, 0.5);
+      transition: 0.25s ease;
+    }
+    .ha-slider::before {
+      content: "";
+      position: absolute;
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #b5dcff);
+      box-shadow: 0 0 8px rgba(117, 255, 244, 0.55);
+      transition: 0.25s ease;
+    }
+    .ha-switch input:checked + .ha-slider {
+      background: linear-gradient(135deg, #6b4eff, #26ffe3);
+      box-shadow: 0 0 10px rgba(124, 255, 252, 0.65);
+    }
+    .ha-switch input:checked + .ha-slider::before {
+      transform: translateX(18px);
+      box-shadow: 0 0 12px rgba(187, 255, 255, 0.95);
+    }
+
+    /* ===== Button ===== */
+    .ha-btn {
+      margin-top: 8px;
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(124, 255, 252, 0.85);
+      background: radial-gradient(circle at 0 0, rgba(129, 230, 255, 0.22), rgba(54, 19, 102, 0.95));
+      color: #ecfdff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    /* ===== Score block ===== */
+    .ha-score-block {
+      padding: 9px 11px;
+      border-radius: 12px;
+      background: rgba(19, 26, 68, 0.86);
+      border: 1px solid rgba(111, 124, 255, 0.4);
+      text-align: center;
+    }
+    .ha-score-label {
+      font-size: 0.78rem;
+      color: rgba(186, 199, 255, 0.85);
+      margin-bottom: 4px;
+    }
+    .ha-score-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .ha-score-chip span:first-child {
+      font-weight: 600;
+      color: #f4f7ff;
+      white-space: nowrap;
+    }
+    .ha-score-chip span:last-child {
+      color: rgba(215, 228, 255, 0.9);
+    }
+    .fs-score-good {
+      background: linear-gradient(135deg, rgba(135, 255, 248, 0.18), rgba(114, 143, 255, 0.2));
+      border: 1px solid rgba(145, 255, 246, 0.85);
+    }
+    .fs-score-mid {
+      background: linear-gradient(135deg, rgba(255, 214, 102, 0.18), rgba(255, 157, 77, 0.16));
+      border: 1px solid rgba(255, 214, 122, 0.85);
+    }
+    .fs-score-bad {
+      background: linear-gradient(135deg, rgba(255, 118, 148, 0.2), rgba(143, 76, 112, 0.22));
+      border: 1px solid rgba(255, 134, 155, 0.9);
+    }
+    .ha-score-scale {
+      margin-top: 5px;
+      font-size: 0.72rem;
+      color: rgba(189, 201, 255, 0.8);
+      white-space: nowrap;
+    }
+    @media (max-width: 500px) {
+      .ha-score-scale {
+        white-space: normal;
+      }
+    }
+
+    /* ===== Matrix ===== */
+    .ha-matrix {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+      margin-top: 7px;
+      table-layout: fixed;
+    }
+    .ha-matrix th,
+    .ha-matrix td {
+      padding: 5px 5px;
+      border-bottom: 1px solid rgba(146, 158, 255, 0.16);
+      vertical-align: top;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    .ha-matrix th {
+      text-align: left;
+      font-weight: 600;
+      color: rgba(209, 218, 255, 0.82);
+    }
+    .ha-matrix td {
+      color: rgba(220, 229, 255, 0.84);
+    }
+    .ha-matrix td.ha-center {
+      text-align: center;
+      width: 70px;
+      white-space: nowrap;
+      color: #e4ecff;
+    }
+
+    .ha-footnote {
+      margin-top: 8px;
+      font-size: 0.76rem;
+      color: rgba(199, 211, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">
+          <img src="nirvachan logo.jpg" alt="NirvachanNex logo" />
+        </div>
+        <div>
+          <div class="brand-text-main">NIRVACHANNEX</div>
+          <div class="brand-text-sub">ONE NATION . ONE ELECTION</div>
+        </div>
+      </div>
+      <nav class="app-nav">
+        <a class="nav-pill nav-active" href="overview.html">Overview</a>
+        <a class="nav-pill nav-active" href="governance.html">Governance</a>
+        <a class="nav-pill nav-active" href="administrative.html">Administrative</a>
+        <a class="nav-pill nav-active" href="financial.html">Financial</a>
+        <a class="nav-pill nav-active" href="constitutional.html">Constitutional</a>
+        <a href="delhi.html" class="nav-pill nav-active">Delhi Model</a>
+        <a class="nav-pill nav-active" href="stakeholders.html">Stakeholders</a>
+        <a class="nav-pill nav-active" href="federalism-solution.html">Federal Model </a>
+        <a class="nav-pill nav-active" href="hung-assembly-solution.html">Fallback</a>
+      </nav>
+    </header>
+
+    <!-- Main -->
+    <main class="ha-grid">
+      <!-- LEFT -->
+      <section class="glass-panel-soft ha-left">
+        <div>
+          <div class="ha-title">Lock the term, patch the numbers</div>
+          <p class="ha-subtitle">
+            Under ONOE, a hung house is handled by fixing numbers inside the same 5‑year term,
+            not by calling another election.
+          </p>
+        </div>
+
+        <div class="ha-card">
+          <div class="ha-card-title">Seat arithmetic</div>
+
+          <div class="ha-input-row">
+            <label class="ha-input-label" for="ha-total-seats">Total seats</label>
+            <input id="ha-total-seats" class="ha-input" type="number" min="1" value="70" />
+          </div>
+
+          <div class="ha-input-row">
+            <label class="ha-input-label" for="ha-govt-seats">Lead bloc seats</label>
+            <input id="ha-govt-seats" class="ha-input" type="number" min="0" value="32" />
+          </div>
+
+          <div class="ha-input-row">
+            <label class="ha-input-label" for="ha-support-seats">Support seats (contract)</label>
+            <input id="ha-support-seats" class="ha-input" type="number" min="0" value="5" />
+          </div>
+        </div>
+
+        <div class="ha-card">
+          <div class="ha-card-title">Contract switches</div>
+
+          <div class="ha-toggle-row">
+            <div class="ha-toggle-text">
+              <div class="ha-toggle-label">Confidence clause</div>
+              <div class="ha-toggle-sub">
+                Support parties back the government on confidence votes.
+              </div>
+            </div>
+            <label class="ha-switch">
+              <input type="checkbox" id="ha-toggle-confidence" checked />
+              <span class="ha-slider"></span>
+            </label>
+          </div>
+
+          <div class="ha-toggle-row">
+            <div class="ha-toggle-text">
+              <div class="ha-toggle-label">Supply clause</div>
+              <div class="ha-toggle-sub">
+                They also support budgets and money bills.
+              </div>
+            </div>
+            <label class="ha-switch">
+              <input type="checkbox" id="ha-toggle-supply" checked />
+              <span class="ha-slider"></span>
+            </label>
+          </div>
+
+          <div class="ha-toggle-row">
+            <div class="ha-toggle-text">
+              <div class="ha-toggle-label">Published contract</div>
+              <div class="ha-toggle-sub">
+                Text is tabled in the House and public.
+              </div>
+            </div>
+            <label class="ha-switch">
+              <input type="checkbox" id="ha-toggle-public" checked />
+              <span class="ha-slider"></span>
+            </label>
+          </div>
+
+          <div class="ha-toggle-row">
+            <div class="ha-toggle-text">
+              <div class="ha-toggle-label">No early dissolution</div>
+              <div class="ha-toggle-sub">
+                The assembly cannot be dissolved before cycle end.
+              </div>
+            </div>
+            <label class="ha-switch">
+              <input type="checkbox" id="ha-toggle-no-dissolution" checked />
+              <span class="ha-slider"></span>
+            </label>
+          </div>
+
+          <button class="ha-btn" onclick="recomputeHungContract()">
+            Recalculate contract stability
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="glass-panel ha-right">
+        <div class="panel-glow"></div>
+
+        <div class="panel-header">
+          <div class="panel-title-block">
+            <div class="panel-title">Hung Assembly Election Trigger Engine</div>
+            <div class="panel-subtitle">
+              High scores mean ONOE can continue without another poll.
+            </div>
+          </div>
+        </div>
+
+        <div class="ha-score-block">
+          <div class="ha-score-label">Stability score for this contract</div>
+          <div id="ha-score-chip" class="ha-score-chip fs-score-good">
+            <span id="ha-score-value">8.0 / 10</span>
+            <span id="ha-score-comment">Term can be completed without a fresh poll.</span>
+          </div>
+          <div class="ha-score-scale">
+            0–3: fresh election · 3–7: fragile · 7–10: safe to avoid election
+          </div>
+        </div>
+
+        <table class="ha-matrix">
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th class="ha-center">Score</th>
+              <th>Interpretation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Numbers on paper</td>
+              <td id="cell-majority-score" class="ha-center">0 / 10</td>
+              <td id="cell-majority-text">
+                Enter seat data to see if you cross majority.
+              </td>
+            </tr>
+            <tr>
+              <td>Contract depth</td>
+              <td id="cell-contract-score" class="ha-center">0 / 10</td>
+              <td id="cell-contract-text">
+                Add confidence, supply and publicity to harden the deal.
+              </td>
+            </tr>
+            <tr>
+              <td>ONOE term lock</td>
+              <td id="cell-term-score" class="ha-center">0 / 10</td>
+              <td id="cell-term-text">
+                Locking the term makes extra elections near‑impossible.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="ha-footnote">
+          This engine assumes a fixed assembly term tied to the ONOE cycle, with hung houses managed through written minority‑government contracts instead of repeated elections.[web:93][web:96]
+        </div>
+      </section>
+    </main>
+
+    <footer>© 2025 NirvachanNex – Hung Assembly Contract Engine</footer>
+  </div>
+
+  <div id="chart-tooltip"></div>
+
+  <script>
+    function clampScore(x) {
+      if (Number.isNaN(x)) return 0;
+      return Math.max(0, Math.min(10, x));
+    }
+
+    function recomputeHungContract() {
+      const totalSeats   = parseInt(document.getElementById('ha-total-seats').value || "0", 10);
+      const govtSeats    = parseInt(document.getElementById('ha-govt-seats').value  || "0", 10);
+      const supportSeats = parseInt(document.getElementById('ha-support-seats').value || "0", 10);
+
+      const hasConfidence = document.getElementById('ha-toggle-confidence').checked;
+      const hasSupply     = document.getElementById('ha-toggle-supply').checked;
+      const isPublic      = document.getElementById('ha-toggle-public').checked;
+      const noDissolution = document.getElementById('ha-toggle-no-dissolution').checked;
+
+      const majorityMark   = Math.floor(totalSeats / 2) + 1;
+      const effectiveSeats = govtSeats + supportSeats;
+
+      // Numbers score
+      let majorityScore = 0;
+      if (majorityMark > 0) {
+        const ratio = effectiveSeats / majorityMark;
+        if (ratio <= 0.5) majorityScore = 1;
+        else if (ratio < 1) majorityScore = 4 + (ratio - 0.5) * 8;
+        else if (ratio >= 1 && ratio < 1.2) majorityScore = 8;
+        else majorityScore = 9.5;
+      }
+      majorityScore = clampScore(majorityScore);
+
+      // Contract score
+      let contractScore = 0;
+      if (hasConfidence) contractScore += 3.5;
+      if (hasSupply)     contractScore += 3;
+      if (isPublic)      contractScore += 2;
+      contractScore = clampScore(contractScore);
+
+      // Term lock score
+      let termScore = 0;
+      if (noDissolution) termScore = 9;
+      termScore = clampScore(termScore);
+
+      const overall = clampScore((majorityScore + contractScore + termScore) / 3);
+
+      // Update table
+      document.getElementById('cell-majority-score').textContent = majorityScore.toFixed(1) + " / 10";
+      document.getElementById('cell-contract-score').textContent = contractScore.toFixed(1) + " / 10";
+      document.getElementById('cell-term-score').textContent     = termScore.toFixed(1)     + " / 10";
+
+      const majText = document.getElementById('cell-majority-text');
+      if (effectiveSeats >= majorityMark) {
+        majText.textContent =
+          "Bloc of " + effectiveSeats + " seats crosses majority mark " + majorityMark + ".";
+      } else {
+        majText.textContent =
+          "Bloc of " + effectiveSeats + " seats is below majority mark " + majorityMark + ".";
+      }
+
+      const contractText = document.getElementById('cell-contract-text');
+      if (!hasConfidence && !hasSupply) {
+        contractText.textContent = "No written contract; support is fluid and polls may become necessary.";
+      } else if (hasConfidence && hasSupply && isPublic) {
+        contractText.textContent = "Confidence + supply + public text create strong friction against walkouts.";
+      } else {
+        contractText.textContent = "Partial contract; some protections exist but defections stay easy.";
+      }
+
+      const termText = document.getElementById('cell-term-text');
+      termText.textContent = noDissolution
+        ? "Early dissolution is blocked; leadership must change inside the same house."
+        : "Without a term lock, parties can still push for early polls instead of fixing numbers.";
+
+      // Chip + colour
+      const chip    = document.getElementById('ha-score-chip');
+      const valueEl = document.getElementById('ha-score-value');
+      const comment = document.getElementById('ha-score-comment');
+
+      valueEl.textContent = overall.toFixed(1) + " / 10";
+
+      chip.classList.remove('fs-score-good','fs-score-mid','fs-score-bad');
+
+      if (overall < 3.5) {
+        chip.classList.add('fs-score-bad');
+        comment.textContent = "Contract is too weak; an extra election is very likely.";
+      } else if (overall < 7) {
+        chip.classList.add('fs-score-mid');
+        comment.textContent = "Minority government can run, but shocks can still force polls.";
+      } else {
+        chip.classList.add('fs-score-good');
+        comment.textContent = "This setup is strong enough to avoid another election under ONOE.";
+      }
+    }
+
+    recomputeHungContract();
+  </script>
+</body>
+</html>
