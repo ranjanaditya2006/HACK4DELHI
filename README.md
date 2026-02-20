@@ -7,7 +7,7 @@ This system leverages directed graph modeling and network analysis to detect sus
 
 # 🌐 Live Demo
 
-🔗 https://your-app-name.onrender.com 
+🔗 https://graph-fraud-detection-engine.onrender.com/
 
 
 # 🧰 Tech Stack
